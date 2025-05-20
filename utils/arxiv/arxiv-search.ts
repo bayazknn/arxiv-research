@@ -27,7 +27,7 @@ export function buildArxivQueryUrl(
 
     const searchQuery = searchParts.length > 1 ? searchParts.join("+AND+") : searchParts.length === 1 ? searchParts[0] : "all:*";
 
-    const url = `http://export.arxiv.org/api/query?` +
+    const url = `https://export.arxiv.org/api/query?` +
                 `search_query=${searchQuery}` +
                 `&start=${start}` +
                 `&max_results=${maxResults}` +
