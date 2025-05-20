@@ -1,0 +1,509 @@
+
+
+arXiv:2505.10823v1  [cs.CV]  16 May 2025
+FROMEMBEDDINGS TOACCURACY: COMPARINGFOUNDATION
+MODELS FORRADIOGRAPHICCLASSIFICATION
+Xue Li
+1
+, Jameson Merkow
+2
+, Noel C. F. Codella
+2
+, Alberto Santamaria-Pang
+2
+,
+Naiteek Sangani
+2
+, Alexander Ersoy
+2
+, Christopher Burt
+2
+, John W. Garrett
+1
+, Richard J. Bruce
+1
+,
+Joshua D. Warner
+1
+, Tyler Bradshaw
+1
+, Ivan Tarapov
+2
+, Matthew P. Lungren
+2
+, Alan B. McMillan
+1
+1
+University of Wisconsin–Madison, Madison, WI USA
+2
+Microsoft Health and Life Sciences, Redmond, WA USA
+ABSTRACT
+Foundation models, pretrained on extensive datasets, have significantly advanced machine learning by
+providing robust and transferable embeddings applicable to various domains, including medical imag-
+ing diagnostics. This study evaluates the utility of embeddings derived from both general-purpose and
+medical domain-specific foundation models for training lightweight adapter models in multi-class
+radiography classification, focusing specifically on tube placement assessment. A dataset comprising
+8,842 radiographs classified into seven distinct categories was employed to extract embeddings using
+six foundation models: DenseNet121, BiomedCLIP, Med-Flamingo, MedImageInsight, Rad-DINO,
+and CXR-Foundation. Adapter models were subsequently trained using classical machine learning
+algorithms, including K-Nearest Neighbors (KNN), logistic regression (LR), Support Vector Ma-
+chines (SVM), random forest (RF), and Multi-Layer Perceptron (MLP). Among these combinations,
+MedImageInsight embeddings paired with an SVM adapter yielded the highest mean area under the
+curve (mAUC) at 93.8%, followed closely by Rad-DINO (91.1%) and CXR-Foundation (89.0%). In
+comparison, BiomedCLIP and DenseNet121 exhibited moderate performance with mAUC scores
+of 83.0% and 81.8%, respectively, whereas Med-Flamingo delivered the lowest performance at
+75.1%.  Notably, most adapter models demonstrated computational efficiency, achieving training
+within one minute and inference within seconds on CPU, underscoring their practicality for clini-
+cal applications. Furthermore, fairness analyses on adapters trained on MedImageInsight-derived
+embeddings indicated minimal disparities, with gender differences in performance within 2% and
+standard deviations across age groups not exceeding 3%.  These findings confirm that foundation
+model embeddings—especially those from MedImageInsight—facilitate accurate, computationally
+efficient, and equitable diagnostic classification using lightweight adapters for radiographic image
+analysis.
+KeywordsFoundation Models·Embedding·Adapter Training·Radiographic Image Classification
+1    Introduction
+Radiography remains an essential diagnostic imaging modality, playing a critical role in clinical decision-making,
+procedural guidance, and patient monitoring [1].  Accurate interpretation of radiographs, especially for verifying
+correct tube placement, is directly tied to patient safety and treatment outcomes, as misplacement can lead to severe
+complications [2,3].  Despite its importance, radiology faces an increasing burden due to the immense volume of
+imaging studies. In the United States alone, approximately 5,000 radiologists are tasked with interpreting over 126
+million radiographic examinations each year [4]. This heavy workload can strain radiologists, potentially impacting
+diagnostic accuracy, efficiency, and overall patient care quality.
+In recent years, artificial intelligence (AI) and machine learning (ML) have been progressively integrated into radiologi-
+cal practice to enhance diagnostic accuracy and workflow efficiency [5,6,7]. Despite these promising developments,
+the implementation of end-to-end deep learning models in clinical practice often faces significant challenges. They
+
+Comparing Foundation Models for Radiographic Classification
+inherently require task-specific training [8].  Consequently, whenever a new clinical condition or classification task
+arises, developing and training an entirely new model becomes necessary. Additionally, these approaches face significant
+challenges in generalizing across different sites due to variations in imaging protocols and equipment, which shift data
+distributions [9,10]. As a result, each medical site typically needs to independently train new models, an approach
+that is both resource-intensive and inefficient.  These limitations underscore the urgent need for more flexible and
+resource-efficient solutions.
+More recently, foundation models represent a significant advancement in artificial intelligence, characterized by large-
+scale architectures pre-trained through self-supervised learning on extensive, multimodal datasets [11,12,13].  A
+primary strength of foundation models is their ability to produce generalizable embeddings which capture a compact,
+high-dimensional representation that is rich with meaningful information from input data. These embeddings can be
+efficiently adapted or fine-tuned for a wide range of downstream tasks, eliminating the need to train entirely new models
+from scratch [14,15,16]. Consequently, integrating foundation model embeddings with traditional machine learning
+classifiers presents a novel and promising approach in radiographic image analysis [17]. Utilizing these robust feature
+representations, conventional machine learning classifiers such as k-nearest neighbors (KNN), logistic regression (LR),
+support vector machines (SVM), random forests (RF), and multi-layer perceptrons (MLP) can be effectively optimized
+for multi-class classification. Preliminary results indicate that this integration can achieve high mean area under the
+curve (mAUC) metrics [15,18,19], demonstrating strong potential in detecting subtle radiographic variations essential
+for accurate tube placement verification. Nevertheless, a systematic evaluation comparing embeddings derived from
+general-purpose versus medical domain-specific models is critical to determine the most effective embedding strategy.
+This study seeks to address this gap by systematically assessing the performance of various foundation model embed-
+dings in training lightweight adapter classifiers for multi-class classification of radiography images. By focusing on
+tube placement, a task with significant clinical implications, we aim to determine the optimal combinations that not
+only enhance diagnostic accuracy but also ensure computational efficiency. The evaluation spans multiple models and
+classifiers, providing a comprehensive comparison that reflects the diverse capabilities of current foundation models
+in a clinically relevant setting. We hypothesize that these embeddings will enable high diagnostic performance while
+maintaining the computational efficiency necessary for real-time clinical deployment.
+2    Materials and Methods
+2.1    Study Design and Dataset
+This study was designed to evaluate the performance of lightweight adapter models trained on embeddings derived from
+pre-trained foundation models for the multi-class classification of radiography images, with a focus on tube placement
+verification. The dataset, summarized in Fig. 1, comprises 8,842 radiographs that had been previously labeled into seven
+diagnostic categories by human readers. The seven diagnostic classes analyzed in this study encompass endotracheal
+tube (ETTube, 5.9%) and nasogastric tube (NGTube, 30.3%) placements, a normal radiographic study (NormalStudy,
+13.4%), and three critical pathological findings—air in the peritoneal cavity (pneumoperitoneum, 5.5%), air in the
+pleural space (pneumothorax, 5.5%), and rib fractures (RFrac, 13.6%)—along with the presence of a vascular line
+(VLine, 25.8%), such as a central venous catheter or peripherally inserted central catheter (PICC line). These classes
+are relatively uncommon in public datasets, making this dataset well-suited for evaluating the generalization capabilities
+of foundation model embeddings. The images were retrospectively collected, encompassing a diverse range of patient
+demographics and imaging device manufacturers, as illustrated in Fig. 1. The dataset includes radiographs from patients
+across various age groups, with a higher proportion in the 40–80 age range, and imaging data acquired from multiple
+manufacturers, including Philips, Fujifilm, and Kodak, among others. This diversity ensures a broad representation
+of clinical scenarios relevant to tube placement assessment. Due to the retrospective nature of this study, a waiver of
+informed consent was obtained.
+2.2    Image Preprocessing and Embedding Extraction
+Each radiograph underwent a standardized preprocessing protocol to ensure uniformity across the dataset. Initially,
+the images were normalized by rescaling pixel intensities to a fixed range of 0 to 255.   This normalization step
+was critical to minimize variations due to differing acquisition parameters and to facilitate a consistent input format
+for subsequent processing.  The normalized images were then passed through six distinct pre-trained foundation
+models— DenseNet-121 [20], BiomedCLIP [15], Med-Flamingo [21], MedImageInsight [19], Rad-DINO [22], and
+CXR-Foundation[18]—to extract high-dimensional feature embeddings as shown in Phase 1 of Fig. 2. These models,
+pre-trained on large-scale datasets, functioned as automated feature extractors, generating representations that capture
+the intricate structural and textural details of the radiographs. DenseNet was sourced fromtimm[23] and the remaining
+models from HuggingFace [24,25,26,27,28]. Embedding extraction was performed using the default configurations
+2
+
+Comparing Foundation Models for Radiographic Classification
+Figure 1: Overview of the Chest X-ray dataset used in this study. The dataset comprises 8,842 radiographs, categorized
+into seven diagnostic classes: NormalStudy (13.4%), ETTube (5.9%), Pneumothorax (5.5%), NGTube (30.3%), VLine
+(25.8%), RFrac (13.6%), and Pneumoperitoneum (5.5%). (Left) The age distribution of patients, stratified by gender.
+(Right) The distribution of imaging device manufacturers. (Top) Summary of image resolution statistics.
+provided by each model’s developers to maintain consistency and reproducibility across the embedding extraction
+pipeline. The embedding length is 512 for BiomedCLIP; 768 for Med-Flamingo and Rad-DINO; and 1024 DenseNet-
+121, MedImageInsight, and CXR-Foundation.  To analyze the learned representations from each foundation model
+before adapter training, t-SNE [29] was applied to the extracted embeddings for visualization.
+2.3    Adapter Model Training and Optimization
+The resulting feature embeddings served as inputs for training a series of lightweight adapter classifiers as illustrated
+in Phase 2 of Fig. 2. The dataset was partitioned into three non-overlapping subsets: a training set, a validation set,
+and an independent test set with ratios of 64%, 16%, and 20%, respectively.  The training set was employed to fit
+various traditional machine learning classifiers usingscikit-learn[30]: K-nearest neighbors (KNN), logistic regression
+(LG), support vector machines (SVM), random forest (RF), and multi-layer perceptron (MLP). For each classifier,
+hyperparameter optimization was carried out using the validation set. This optimization process involved systematic
+adjustments to key parameters—such as the number of neighbors in the KNN algorithm, optimization methods in the
+LG algorithm, kernel functions and its degree in SVM, tree depth and number of trees in the RF, and the architectural
+parameters in the MLP—to maximize performance.  Once the optimal hyperparameters were determined, the final
+models were retrained on the training data with the optimal hyperparameters before being evaluated on the test set.
+2.4    Performance Evaluation
+Model performance was primarily evaluated using the mAUC, calculated for each combination of foundation model
+embeddings and lightweight adapter models. For a comprehensive assessment, additional metrics—including accuracy,
+precision, recall, and F1 score—were computed for each diagnostic class using the best-performing embedding-adapter
+combination,  defined by the highest overall mAUC. To facilitate deeper insights into classification performance,
+confusion matrices were generated to visualize class-specific predictions and to identify frequent misclassification
+patterns.
+Beyond overall accuracy, fairness was systematically analyzed across gender and age groups for the optimal embedding
+model combined with various adapter configurations. Specifically, area under the curve (AUC) scores were calculated
+separately for females (709 patients) and males (1059 patients), as well as across five distinct age brackets: (0, 20], (20,
+40], (40, 60], (60, 80], and (80, 100] with 164, 237, 570, 610, and 99 patients respectively.  Patients older than 100
+were unidentified and were excluded from analysis. Additionally, computational efficiency was evaluated by measuring
+3
+
+Comparing Foundation Models for Radiographic Classification
+Figure 2: Two-phase workflow for radiograph classification. Phase 1: Embedding Extraction—Chest X-ray images
+were preprocessed and passed through pre-trained foundation models, including DenseNet121, BiomedCLIP, Med-
+Flamingo, MedImageInsight, Rad-DINO, and CXR-Foundation, to generate image embeddings.  Phase 2: Adapter
+Training—Embeddings were used as input to lightweight ML models for class prediction, enabling efficient transfer
+learning.
+training and inference times (in seconds) for each adapter model executed on a CPU. These efficiency measurements
+underscore the lightweight nature of the adapters, highlighting their suitability for rapid deployment, particularly in
+resource-constrained environments.
+This evaluation framework rigorously validates the hypothesis that foundation model embeddings can effectively
+train lightweight adapters for multi-class radiograph classification, ensuring high diagnostic accuracy, computational
+efficiency, and equitable performance across demographic groups, thus supporting reliable and fair clinical practice.
+3    Results
+A total of 8,842 radiographs were analyzed, each labeled into one of seven diagnostic categories relevant to tube
+placement  verification.   These  images  were  first  processed  and  then  fed  into  the  pre-trained  foundation  models.
+The visualization of the embeddings from six foundation models involved in this study is shown in Fig.  3.  The
+clustering patterns highlighted each model’s ability to differentiate diagnostic categories within the embedding space.
+Notably, MedImageInsight embeddings exhibited distinct separation across several clinical categories, indicating their
+effectiveness in capturing subtle yet critical visual differences essential for accurate radiographic classification. Similarly,
+CXR-Foundation embeddings demonstrated promising clustering patterns, with observable transitions between classes.
+In contrast, embeddings from other models lacked clear separation, suggesting differences in how each model encodes
+radiographic features.
+Once the embeddings were extracted, lightweight adapters were trained on CPU for radiographic classification. The
+classification performance of all combinations of foundation model embeddings and lightweight adapter models was
+evaluated using mAUC, as shown in Fig.  4.  Across configurations, the adapters exhibited a range of diagnostic
+4
+
+Comparing Foundation Models for Radiographic Classification
+performance, with notable variation driven by the choice of foundation model embeddings. Among the six foundation
+models, MedImageInsight consistently achieved the highest overall mAUC across adapter types, with top performance
+from SVM (93.8%), followed closely by MLP (93.7%) and LR (93.5%).  In contrast, Med-Flamingo produced the
+lowest mAUC scores, with all adapters falling below 78%, reflecting its limited suitability for this task and highlighting
+the variability in embedding quality across foundation models.
+Figure 3:  t-SNE visualization of embeddings extracted from six foundation models:  DenseNet121, BiomedCLIP,
+Med-Flamingo, MedImageInsight, Rad-DINO, and CXR-Foundation. Each point represents a radiograph, color-coded
+according to its diagnostic category: ETTube, NGTube, NormalStudy, Pneumoperitoneum, Pneumothorax, RFrac, and
+VLine.
+When evaluating foundation models,  a clear trend emerges along the spectrum from general to domain-specific.
+DenseNet121, originally trained on broad natural image datasets, demonstrated moderate performance (mAUC range:
+76.5%–81.8%). Models with some biomedical adaptation, like BiomedCLIP (trained on scientific figure–caption pairs,
+mAUC 79.1%–83.0%), showed incremental improvements but remained limited for this specific radiographic task. Sur-
+prisingly, Med-Flamingo, another medical domain–adapted model trained on scientific image–text pairs, only achieved
+an mAUC of 70.5%–77.5%, which is worse than DenseNet121. In contrast, models more closely aligned with radio-
+graphic imaging outperformed these approaches: Rad-DINO (focused on radiography images, mAUC 86.4%–91.1%)
+and CXR-Foundation (specialized in chest X-rays, mAUC 86.6%–89.0%). Notably, MedImageInsight—though not
+tailored to any single task—achieved the highest mAUC of 93.8%, likely owing to its broad domain-specific training
+across multiple medical imaging modalities.
+From an adapter model perspective, SVM consistently outperformed other methods across six of the seven foundation
+models,  underscoring  its  strong  compatibility  with  high-dimensional  embeddings.   MLP  and  RF  also  delivered
+5
+
+Comparing Foundation Models for Radiographic Classification
+Figure 4: Performance comparison of adapter models (KNN, LR, SVM, RF, and MLP) paired with embeddings from
+general-purpose to domain-specific foundation models, evaluated by mAUC.Ndenotes the embedding size used for
+adapter training.
+Table 1: Per-class performance (%) of the SVM adapter with MedImageInsight embeddings
+ClassPrecisionRecallF1AUC
+ETTube63.025.436.389.8
+NGTube69.279.273.991.3
+Pneumoperitoneum85.961.871.994.6
+Pneumothorax68.451.458.795.3
+RFrac90.377.383.396.9
+VLine71.176.073.591.0
+NormalStudy75.590.082.198.1
+*
+ETTube=endotracheal tube, NGTube=nasogastric tube, RFrac=rib fracture, VLine=vascular lines.
+competitive results, frequently trailing SVM by only a small margin. In contrast, KNN and LR generally exhibited
+lower performance, particularly when paired with weaker embeddings. Overall, the performance gap among adapter
+models was much smaller than the disparity observed among embeddings.
+The combination of MedImageInsight embeddings with an SVM adapter achieved the best overall performance. Detailed
+per-class results for this combination are presented in Table 1, with mAUC values exceeding 90% in six of the seven
+diagnostic categories. NormalStudy achieved the highest mAUC (98.1%) and F1 score (82.1%), while ETTube proved
+the most challenging, with a low recall (25.4%) and F1 score (36.3%), reflecting frequent misclassifications.  The
+confusion matrix in Fig.  5 further reveals several notable misclassification patterns.  Misclassification of ETTube
+as NGTube represents the largest single source of error (42.1%), with a further 21.9% of ETTube cases confused
+with  VLine.   Substantial  bidirectional  confusion  also  arises  between  NGTube  and  VLine  (15.3%  versus  17.9%,
+respectively). Moreover, 15.7% of Pneumoperitoneum and 21.9% of Pneumothorax instances are incorrectly classified
+as NGTube, indicating that the model occasionally interprets radiographic features of pathological air collections as
+tube structures. Overall, these patterns highlight the difficulty in differentiating visually similar lines and tubes (e.g.,
+ETTube, NGTube, and VLine) on chest radiographs, suggesting that finer-grained radiographic features are crucial for
+accurate classification.
+In addition to accuracy, fairness analysis was conducted to assess the model’s equitable performance across gender
+and age groups for different adapters trained on MedImageInsight embeddings. The performance differences between
+female (F) and male (M) groups were minimal across all adapter models, as demonstrated by the mAUC difference
+6
+
+Comparing Foundation Models for Radiographic Classification
+Figure 5: Confusion matrix (left) and corresponding misclassification pattern diagram (right) for multi-class radio-
+graphic image classification using MedImageInsight embeddings paired with an SVM adapter. The confusion matrix
+illustrates counts of predictions versus true labels, highlighting correctly classified samples along the diagonal and
+misclassifications off-diagonal. The misclassification pattern diagram indicates prevalent confusion among specific
+classes, with arrow directions representing the direction of misclassification and percentages denoting the proportion of
+misclassified cases relative to the total cases of each true class.
+shown in Table 2. Specifically, gender-related differences were small, with the largest observed mAUC disparity being
+2.0% (KNN), followed by SVM (0.9%), LG (0.7%), RF (1.0%), and MLP (0.3%), indicating robust and equitable
+predictions irrespective of gender. Furthermore, performance across age groups showed similarly consistent results as
+indicated in Table 3. The standard deviation (std) of mAUC scores across the five age categories remained generally
+low, with values ranging between 0.9% (SVM) and 2.9% (LG). Notably, higher variability was observed within specific
+diagnostic classes, such as Pneumothorax (up to 19.0% std for LG and 16.9% for MLP), suggesting potential areas for
+targeted improvements. Overall, the fairness analysis indicates that the evaluated models maintain consistent diagnostic
+performance across demographic subgroups, supporting equitable clinical utility.
+Beyond fairness, computational efficiency was assessed through the training and inference times of each adapter model
+on a CPU, as summarized in Table 4. All adapters achieved fast inference times, with most completing predictions in
+under 0.1 seconds, reinforcing their suitability for real-time or resource-constrained clinical settings. SVM was the
+exception, with a longer but still acceptable inference time of 1.909 seconds. For training, KNN required negligible
+time (0.004 s), while LR (5.717 s) and MLP (5.147 s) provided a good balance between speed and performance. SVM
+(41.555 s) and RF (32.361 s) incurred higher training costs but less than one minute, remained within acceptable limits
+for efficient deployment.
+These findings indicate that foundation model embeddings, particularly those derived from MedImageInsight, can
+be effectively utilized to train lightweight adapter classifiers, yielding high diagnostic accuracy while maintaining
+computational efficiency. The variability in performance across different foundation models highlights the importance
+of selecting appropriate embedding representations tailored to the specific radiographic classification task.
+4    Discussion
+This study evaluated the diagnostic performance and computational efficiency of lightweight adapter classifiers trained
+on embeddings from pre-trained foundation models for multi-class classification of radiography images, with a focus
+on tube placement verification. Results show that adapter models effectively utilize these embeddings, achieving high
+mAUC values across multiple configurations.  Notably, the combination of MedImageInsight embeddings with an
+SVM adapter achieved an mAUC of 93.85%, outperforming all other foundation model embeddings. In contrast, Med-
+Flamingo embeddings yielded substantially lower mAUC values, underscoring the importance of selecting embeddings
+that are well-aligned with the radiographic classification task.
+7
+
+Comparing Foundation Models for Radiographic Classification
+Table 2: Gender fairness assessment of AUC performance (%) from adapters trained by MedImageInsight embeddings
+AdaptersGenderETTubeNGTubePneumoperitoneumPneumothoraxRracVLineNormalmAUC
+KNN
+F91.290.194.592.696.290.196.493.0
+M85.288.890.293.595.387.496.691.0
+Difference6.01.34.3-0.80.92.7-0.22.0
+LG
+F90.491.095.792.798.091.597.793.8
+M89.889.693.595.196.290.697.693.2
+Difference0.51.42.2-2.41.80.90.10.7
+SVM
+F92.291.594.694.998.091.698.094.4
+M88.591.194.595.596.290.698.193.5
+Difference3.70.40.1-0.61.81.0-0.10.9
+RF
+F87.991.295.192.997.591.297.493.3
+M86.590.093.495.094.789.797.092.3
+Difference1.51.21.8-2.12.81.50.41.0
+MLP
+F91.791.195.491.397.791.797.993.8
+M90.690.893.094.596.791.098.193.5
+Difference1.10.32.3-3.21.00.7-0.30.3
+*
+KNN = k-nearest neighbors, LG = logistic regression, SVM = support vector machine, RF = random forest, MLP = multi-layer
+perceptron, ETTube=endotracheal tube, NGTube=nasogastric tube, RFrac=rib fracture, VLine=vascular lines, F=female patients
+(709 in total), M=male patients (1059 in total).
+The results highlight the critical role of domain knowledge in improving classification performance. Among models
+trained solely on image data, Rad-DINO, which is specifically focused on radiography images, outperformed the more
+general DenseNet121, emphasizing the benefits of domain-focused pretraining. A similar pattern was observed among
+vision-language models: both BiomedCLIP and Med-Flamingo, trained on biomedical image-text pairs from scientific
+articles, achieved moderate performance but were outperformed by models trained on large-scale Chest-Xray imaging
+datasets, like CXR-Foundation.
+An especially notable finding is the exceptional performance of MedImageInsight, despite it not being limited to
+radiography data. Unlike Rad-DINO and CXR-Foundation, which are tailored specifically to radiography and chest
+X-rays, MedImageInsight leverages data from a broad range of medical imaging modalities. This cross-modal training
+may enable the model to capture richer semantic features and shared medical imaging patterns, ultimately enhancing its
+representation power for radiographic tasks. These observations suggest that while task-specific domain adaptation
+is beneficial,  diversity and scale across medical domains can provide additional gains,  potentially offering more
+generalizable and semantically meaningful embeddings that transfer effectively across tasks.
+Despite achieving the best overall performance, the MedImageInsight + SVM combination struggled to distinguish
+between ETTube, NGTube, and VLine, as evidenced by the confusion matrix in Fig. 5. This issue is also apparent in
+the t-SNE visualization of MedImageInsight embeddings shown in Fig. 3, where these three classes are not clearly
+separated compared to others. Such overlap suggests that while the foundation model captures general semantic features,
+it may not preserve the fine-grained details needed to differentiate visually similar tube placements. These findings
+highlight a limitation of current multi-modal foundation models in retaining subtle cues critical for tasks involving
+highly similar anatomical structures or device orientations.
+In the fairness analysis of MedImageInsight embeddings, the performance differences between genders across all
+adapters were minimal, with the largest observed gap being just 2.0%.  Similarly, the variability across age groups
+was modest, with a maximum difference of 2.9%. However, a noticeable performance decrease was identified for the
+senior age group (80–100 years) within the Pneumothorax diagnostic class, particularly when using LG and MLP
+adapters, only 53.5% and 58.0% respectively shown in Table 3. This reduction may be attributable to the limited senior
+Pneumothorax patients in the test dataset, only three patients, suggesting more data are needed for accurate performance
+estimation.
+The results of our investigation provide compelling evidence that foundation model embeddings, especially those
+derived from domain-specific models such as MedImageInsight, can be harnessed to train efficient and accurate adapter
+classifiers. The observed superiority of the SVM adapter across most configurations further emphasizes the potential of
+combining pre-trained embeddings with lightweight, traditional machine learning classifiers[16,17]. Moreover, the
+computational efficiency demonstrated—where training and inference times remained within seconds for most models
+8
+
+Comparing Foundation Models for Radiographic Classification
+Table 3: Age fairness assessment of AUC performance (%) from adapters trained by MedImageInsight embeddings
+AdaptersAgeETTubeNGTubePneumoperitoneumPneumothoraxRracVLineNormalmAUC
+KNN
+(0, 20]98.784.3100.099.1100.079.399.794.4
+(20, 40]85.889.177.390.996.888.297.189.3
+(40, 60]86.791.092.794.995.590.097.392.6
+(60, 80]86.787.692.291.996.288.993.791.0
+(80, 100]92.986.295.586.396.385.498.191.5
+std5.52.68.54.81.84.32.21.9
+LG
+(0, 20]100.087.2100.099.399.784.3100.095.8
+(20, 40]91.191.193.991.998.591.497.993.7
+(40, 60]87.490.894.796.097.391.498.293.7
+(60, 80]90.488.492.895.197.390.796.093.0
+(80, 100]94.387.397.053.596.392.096.388.1
+std4.81.92.919.01.33.21.62.9
+SVM
+(0, 20]100.085.6100.099.499.982.8100.095.4
+(20, 40]87.590.493.794.797.990.598.293.3
+(40, 60]87.391.494.994.897.591.498.893.7
+(60, 80]91.190.993.495.197.491.696.593.7
+(80, 100]97.086.896.484.796.891.897.393.0
+std5.72.62.75.41.23.81.30.9
+RF
+(0, 20]99.387.8100.099.3100.085.0100.095.9
+(20, 40]87.789.993.095.197.290.597.393.0
+(40, 60]83.791.394.695.296.790.598.292.9
+(60, 80]86.889.192.092.297.391.195.192.0
+(80, 100]92.587.999.580.094.293.496.892.0
+std6.11.53.77.32.13.11.81.6
+MLP
+(0, 20]100.086.9100.099.699.784.6100.095.8
+(20, 40]91.092.193.790.098.991.998.293.7
+(40, 60]87.891.793.595.497.291.098.693.6
+(60, 80]92.189.692.794.597.391.896.893.5
+(80, 100]94.987.496.158.095.991.397.088.6
+std4.62.43.016.81.53.11.32.7
+*
+ETTube = endotracheal tube, NGTube = nasogastric tube, RFrac = rib fracture, VLine = vascular lines, std = standard deviation.
+A total of 154 patients with age in the range of (0, 20], 237 patients with age in the range of (20, 40], 570 patients with age in the
+range of (40, 60], 610 patients with age in the range of (60, 80], and 99 patients with age in the range of (80, 100] are involved in
+the analysis. Patients older than 100 are unidentified and are excluded from analysis.
+Table 4: Average training and inference times (in seconds) on CPU for each adapter model
+AdaptersKNNLRSVMRFMLP
+Training0.0045.71741.55532.3615.147
+Inference0.0480.0031.9090.0960.006
+*
+KNN= K-Nearest Neighbors; LR=Logistic Regression; SVM=Support Vector Machines; RF=Random Forest; MLP=Multi-
+Layer Perceptron
+and under one minute even for the more computationally demanding classifiers—supports the feasibility of integrating
+these methods into clinical workflows where rapid decision-making is essential.
+Despite these promising findings, several limitations must be acknowledged.  Although the dataset encompassed a
+diverse range of clinical scenarios pertinent to tube placement, future studies should aim to validate these findings
+in prospective cohorts and across different clinical settings.  Additionally, while our study focused mainly on tube
+placement verification—a task of significant clinical relevance—further research is warranted to assess the applicability
+of this methodology to other radiographic classification challenges.
+9
+
+Comparing Foundation Models for Radiographic Classification
+5    Conclusion
+In summary, our investigation demonstrates that foundation model embeddings, particularly those from domain-specific
+sources such as MedImageInsight, can be effectively employed to train lightweight adapter models for multi-class
+radiography classification with gender and age fairness. The high diagnostic accuracy and computational efficiency
+observed in this study underscore the potential of this approach to enhance clinical radiographic assessment, particularly
+in environments where rapid and reliable interpretation is critical. Future studies should further explore the integration
+of such models into clinical practice and assess their impact on diagnostic workflows and patient outcomes.
+Acknowledgments
+This work was supported in part by the Department of Radiology at the University of Wisconsin-Madison.
+Declarations
+Ethics ApprovalDue to the retrospective nature of the study, a waiver of informed consent was obtained.
+Conflict of InterestNCFC, JM, MPL, ASP, NS, AE, CB are employees of Microsoft.   NCFC holds diverse
+investments in the technology and healthcare sectors. John W. Garrett is an advisor to RadUnity. He and Joshua D.
+Warner are shareholders in NVIDIA. The remaining authors declare no competing interests.
+References
+[1]
+Chaoyi Wu, Xiaoman Zhang, Ya Zhang, Yanfeng Wang, and Weidi Xie. Towards generalist foundation model for
+radiology by leveraging web-scale 2d&3d medical data.arXiv preprint arXiv:2308.02463, 2023.
+[2]
+Emily Keyte, Gillian Roe, Annmarie Jeanes, and Jeannette K Kraft. Immediate chest radiograph interpretation
+by radiographers improves patient safety related to nasogastric feeding tube placement in children.Pediatric
+Radiology, 51:1621–1625, 2021.
+[3]Carena D McMullen, Chris Anstey, Peter Garrett, and John Moore. Nasogastric tube placement under sonographic
+observation:  A  comparison  study  of  ultrasound  and  chest  radiography  in  mechanically  ventilated  patients.
+Australian Critical Care, 35(2):181–185, 2022.
+[4]IMV. 2021 X-ray DR CR Market Outlook Report. Technical report, IMV Medical Information Division, 2021.
+Accessed: March 31, 2023.
+[5]BS Kelly, C Judge, SM Bollard, SM Clifford, GM Healy, A Aziz, P Mathur, S Islam, KW Yeom, A Lawlor, and
+RP Killeen. Radiology artificial intelligence: a systematic review and evaluation of methods (raise).European
+Radiology, 32(11):7998–8007, 2022.
+[6]C Mello-Thoms and CAB Mello. Clinical applications of artificial intelligence in radiology.British Journal of
+Radiology, 96(1150):20221031, 2023.
+[7]
+R Najjar. Redefining radiology: A review of artificial intelligence integration in medical imaging.Diagnostics
+(Basel), 13(17):2760, 2023.
+[8]David M Knigge, David W Romero, Albert Gu, Efstratios Gavves, Erik J Bekkers, Jakub Mikolaj Tomczak, Mark
+Hoogendoorn, and Jan-jakob Sonke. Modelling long range dependencies innd: From task-specific to a general
+purpose cnn. InThe Eleventh International Conference on Learning Representations.
+[9]Kaoutar Ben Ahmed, Gregory M Goldgof, Rahul Paul, Dmitry B Goldgof, and Lawrence O Hall. Discovery of a
+generalization gap of convolutional neural networks on covid-19 x-rays classification.Ieee Access, 9:72970–72979,
+2021.
+[10]
+Ahmad Waleed Salehi, Shakir Khan, Gaurav Gupta, Bayan Ibrahimm Alabduallah, Abrar Almjally, Hadeel
+Alsolai, Tamanna Siddiqui, and Adel Mellit. A study of cnn and transfer learning in medical imaging: Advantages,
+challenges, future scope.Sustainability, 15(7):5930, 2023.
+[11]
+Michael Moor, Oishi Banerjee, Zahra Shakeri Hossein Abad, Harlan M Krumholz, Jure Leskovec, Eric J Topol, and
+Pranav Rajpurkar. Foundation models for generalist medical artificial intelligence.Nature, 616(7956):259–265,
+2023.
+10
+
+Comparing Foundation Models for Radiographic Classification
+[12]Ce Zhou, Qian Li, Chen Li, Jun Yu, Yixin Liu, Guangjing Wang, Kai Zhang, Cheng Ji, Qiben Yan, Lifang He,
+et al. A comprehensive survey on pretrained foundation models: A history from bert to chatgpt.International
+Journal of Machine Learning and Cybernetics, pages 1–65, 2024.
+[13]Muhammad Awais, Muzammal Naseer, Salman Khan, Rao Muhammad Anwer, Hisham Cholakkal, Mubarak
+Shah, Ming-Hsuan Yang, and Fahad Shahbaz Khan. Foundation models defining a new era in vision: a survey and
+outlook.IEEE Transactions on Pattern Analysis and Machine Intelligence, 2025.
+[14]
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,
+Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language
+supervision. InInternational conference on machine learning, pages 8748–8763. PmLR, 2021.
+[15]Sheng Zhang, Yanbo Xu, Naoto Usuyama, Hanwen Xu, Jaspreet Bagga, Robert Tinn, Sam Preston, Rajesh Rao,
+Mu Wei, Naveen Valluri, Cliff Wong, Andrea Tupini, Yu Wang, Matt Mazzola, Swadheen Shukla, Lars Liden,
+Jianfeng Gao, Angela Crabtree, Brian Piening, Carlo Bifulco, Matthew P. Lungren, Tristan Naumann, Sheng
+Wang, and Hoifung Poon. A multimodal biomedical foundation model trained from fifteen million image–text
+pairs.NEJM AI, 2(1), 2024.
+[16]M Paschali, Z Chen, L Blankemeier, M Varma, A Youssef, C Bluethgen, C Langlotz, S Gatidis, and A Chaudhari.
+Foundation models in radiology: What, how, why, and why not.Radiology, 314(2):e240597, 2025.
+[17]MJ Willemink, HR Roth, and V Sandfort. Toward foundational deep learning models for medical imaging in the
+new era of transformer networks.Radiology: Artificial Intelligence, 4(6):e210284, 2022.
+[18]
+AB Sellergren, C Chen, Z Nabulsi, Y Li, A Maschinot, A Sarna, J Huang, C Lau, SR Kalidindi, M Etemadi,
+F Garcia-Vicente, D Melnick, Y Liu, K Eswaran, D Tse, N Beladia, D Krishnan, and S Shetty. Simplified transfer
+learning for chest radiography models using less data.Radiology, 305(2):454–465, 2022.
+[19]Noel CF Codella, Ying Jin, Shrey Jain, Yu Gu, Ho Hin Lee, Asma Ben Abacha, Alberto Santamaria-Pang, Will
+Guyman, Naiteek Sangani, Sheng Zhang, et al. Medimageinsight: An open-source embedding model for general
+domain medical imaging.arXiv preprint arXiv:2410.06542, 2024.
+[20]Gao Huang, Zhuang Liu, Laurens Van Der Maaten, and Kilian Q Weinberger. Densely connected convolutional
+networks. InProceedings of the IEEE conference on computer vision and pattern recognition, pages 4700–4708,
+2017.
+[21]
+Michael  Moor,  Qian  Huang,  Shirley  Wu,  Michihiro  Yasunaga,  Yash  Dalmia,  Jure  Leskovec,  Cyril  Zakka,
+Eduardo Pontes Reis, and Pranav Rajpurkar. Med-flamingo: a multimodal medical few-shot learner. InMachine
+Learning for Health (ML4H), pages 353–367. PMLR, 2023.
+[22]F Pérez-García, H Sharma, S Bond-Taylor, K Bouzid, V Salvatelli, M Ilse, S Bannur, DC Castro, A Schwaighofer,
+MP Lungren, MT Wetscherek, N Codella, SL Hyland, J Alvarez-Valle, and O Oktay. Exploring scalable medical
+image encoders beyond text supervision.Nature Machine Intelligence, 7(1):119–130, 2025.
+[23]Ross Wightman. Pytorch image models.https://github.com/rwightman/pytorch-image-models, 2019.
+[24]Microsoft. Biomedclip-pubmedbert_256-vit_base_patch16_224, 2025. Available at:https://huggingface.
+co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224.
+[25]  Google. Cxr-foundation, 2025. Available at:https://huggingface.co/google/cxr-foundation.
+[26]  Team MF. Med-flamingo, 2025. Available at:https://huggingface.co/med-flamingo/med-flamingo.
+[27]  Microsoft. Medimageinsight, 2025. Available at:https://huggingface.co/lion-ai/MedImageInsights.
+[28]  Microsoft. Rad-dino, 2025. Available at:https://huggingface.co/microsoft/rad-dino.
+[29]Laurens Van der Maaten and Geoffrey Hinton. Visualizing data using t-sne.Journal of machine learning research,
+9(11), 2008.
+[30]F Pedregosa, G Varoquaux, A Gramfort, V Michel, B Thirion, O Grisel, M Blondel, P Prettenhofer, R Weiss,
+V Dubourg, J Vanderplas, A Passos, D Cournapeau, M Brucher, M Perrot, and E Duchesnay. Scikit-learn: Machine
+learning in python.Journal of Machine Learning Research, 12:2825–2830, 2011.
+11
