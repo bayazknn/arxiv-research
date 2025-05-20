@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import AiChat from "@/components/ai-chat";
 import { ChatInterface } from "@/components/chat-interface/chat/ChatInterface";
 
 export default function PaperPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaperPageContent />
+    </Suspense>
+  );
+}
+
+function PaperPageContent() {
   const searchParams = useSearchParams();
   const link = searchParams.get("link");
   const arxivId = link ? link.split("/").pop() : "";

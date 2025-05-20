@@ -31,7 +31,7 @@ export default function Page() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [createWorkspaceName, setCreateWorkspaceName] = useState("");
   const [createWorkspaceDescription, setCreateWorkspaceDescription] = useState("");
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function Page() {
         data: { user },
       } = await supabase.auth.getUser();
       console.log("User id:", user?.id);
-      setUser(user);
+      setUser(user ?? null);
     };
     getUser();
   }, []);
@@ -65,7 +65,7 @@ export default function Page() {
         name: createWorkspaceName,
         description: createWorkspaceDescription,
         created_at: new Date().toISOString(),
-        user_id: user?.id,
+        user_id: user?.id ?? null,
       },
     ]);
     if (error) {
