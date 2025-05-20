@@ -2,12 +2,14 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { CodeProps } from "react-markdown/lib/ast-to-react";
+import type { ExtraProps, Options, HooksOptions, UrlTransform, Components } from "react-markdown";
 import { CodeBlockRenderer } from "./CodeBlockRenderer";
 
-interface MarkdownRendererProps {
-  markdown: string;
-}
+type MarkdownRendererProps = Options &
+  ExtraProps &
+  UrlTransform & {
+    markdown: string;
+  };
 
 export function MarkdownRenderer({ markdown }: MarkdownRendererProps) {
   return (
@@ -15,8 +17,8 @@ export function MarkdownRenderer({ markdown }: MarkdownRendererProps) {
       remarkPlugins={[remarkGfm]}
       className="prose prose-sm dark:prose-invert max-w-none"
       components={{
-        code({ node, inline, className, children, ...props }: CodeProps) {
-          const match = /language-(\w+)/.exec(className || "");
+        code({ node, inline, className, children, ...props }: Components["code"]) {
+          const match = /(?:^|\s)language-(\w+)(?:\s|$)/.exec(className || "");
           if (!inline && match) {
             return <CodeBlockRenderer code={String(children).replace(/\n$/, "")} language={match[1]} />;
           }
