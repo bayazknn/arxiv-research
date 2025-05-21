@@ -43,26 +43,7 @@ export default function RootLayout({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-              <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="mr-2 h-4" />
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    {pathnameList.map((path, index) => {
-                      return (
-                        <BreadcrumbItem key={index} className="hidden md:block">
-                          <BreadcrumbLink href={`${pathnameList.slice(0, index + 1).join("/")}`}>{path}</BreadcrumbLink>
-                          {/* <BreadcrumbPage>{path}</BreadcrumbPage> */}
-                          <Separator orientation="vertical" />
-                        </BreadcrumbItem>
-                      );
-                    })}
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
-            </header>
-            {children}
+            <div className="h-screen overflow-hidden">{children}</div>
           </SidebarInset>
         </SidebarProvider>
       </body>

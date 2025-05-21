@@ -29,7 +29,6 @@ export default async function extractPdf(url: string){
     const { totalPages, text } = await extractText(pdf, { mergePages: true });
 
     console.log(`Total pages: ${totalPages}`);
-    console.log(text);
 
     return text
 }

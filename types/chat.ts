@@ -1,36 +1,59 @@
-export type MessageRole = 'user' | 'assistant';
+export type MessageRole = "user" | "assistant" | "system"
 
-export interface Attachment {
-  id: string;
-  name: string;
-  type: string; // MIME type
-  size: number;
-  fileObject?: File; // For active use, not persisted in JSON export
-  dataUrl?: string; // For image previews, not persisted in JSON export
+export type CodeBlockAction = "copy" | "run" | "save"
+
+export type MessageAction = "copy" | "delete" | "annotate"
+
+export type SessionAction = "rename" | "delete" | "export"
+
+export type Annotation = {
+  id: string
+  text: string
+  tags: string[]
+  color?: string
+  createdAt: Date
 }
 
-export interface ChatMessage {
-  id: string;
-  role: MessageRole;
-  text?: string; // Main text content
-  attachments?: Attachment[]; // Files attached by user or potentially by assistant
-  
-  // Properties for rich display by assistant or user input that needs specific rendering
-  displayType?: 'markdown' | 'code' | 'terminal'; 
-  codeLanguage?: string; // e.g., 'javascript', 'python', 'bash'
-  
-  timestamp: number;
+export type Attachment = {
+  id: string
+  name: string
+  type: string
+  size: number
+  url: string
+  content?: string
+  previewUrl?: string
+  isImage?: boolean
 }
 
-export interface ChatSession {
-  id: string;
-  name: string;
-  messages: ChatMessage[];
-  createdAt: number;
-  updatedAt: number;
-  context?: ChatContext;
+export type MessageContent = {
+  type: "text" | "code" | "markdown" | "image" | "file" | "terminal"
+  content: string
+  language?: string
+  fileName?: string
+  fileType?: string
+  fileSize?: number
 }
 
-export interface ChatContext {
-  pdfUrl?: string;
+export type Message = {
+  id: string
+  role: MessageRole
+  content: MessageContent[]
+  createdAt: Date
+  annotations: Annotation[]
+  attachments?: Attachment[]
+}
+
+export type ChatSession = {
+  id: string
+  name: string
+  messages: Message[]
+  createdAt: Date
+  updatedAt: Date
+  annotations: Annotation[]
+}
+
+export type PredefinedPrompt = {
+  id: string
+  title: string
+  prompt: string
 }
