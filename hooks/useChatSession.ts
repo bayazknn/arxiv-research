@@ -153,27 +153,10 @@ export function useChatSession() {
           : session
       )
     );
-    // Simulate assistant response
-    if (message.role === 'user') {
-        setTimeout(() => {
-            const assistantResponse: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                text: `This is a mocked AI response to: "${message.text || 'your attachment'}".\n\nI can render **markdown**!\n\n\`\`\`javascript\nconsole.log("Hello, NebulaChat!");\n\`\`\`\n\nAnd also terminal commands:\n\n\`\`\`bash\nls -la\necho "Done"\n\`\`\`
-                `,
-                displayType: 'markdown',
-                timestamp: Date.now(),
-            };
-             setSessions(prevSessions =>
-                prevSessions.map(s =>
-                    s.id === sessionId
-                        ? { ...s, messages: [...s.messages, assistantResponse], updatedAt: Date.now() }
-                        : s
-                )
-            );
-        }, 1000);
+    
+    if (activeSessionId === sessionId) {
+      setActiveSessionId(sessionId); // Trigger re-render of activeSession
     }
-
 
   }, []);
 

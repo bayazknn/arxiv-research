@@ -2,8 +2,6 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-
-import AiChat from "@/components/ai-chat";
 import { ChatInterface } from "@/components/chat-interface/chat/ChatInterface";
 
 export default function PaperPage() {
@@ -48,8 +46,6 @@ function PaperPageContent() {
         <iframe src={pdfUrl} className="w-full h-full" title="arXiv PDF" allowFullScreen />
       </div>
       <div className="w-1/2 h-screen">
-        {/* <AiChat /> */}
-        {/* <AppLayout></AppLayout> */}
         <ChatInterface />
       </div>
     </div>

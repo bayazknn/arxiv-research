@@ -18,7 +18,7 @@ export function CodeBlockRenderer({ code, language }: CodeBlockRendererProps) {
     try {
       await navigator.clipboard.writeText(code);
       setHasCopied(true);
-      toast({ title: "Copied!", description: `${language || "Content"} copied to clipboard.` });
+      toast({ title: "Copied!", description: `${language || 'Content'} copied to clipboard.` });
       setTimeout(() => setHasCopied(false), 2000);
     } catch (err) {
       toast({ title: "Error", description: "Failed to copy.", variant: "destructive" });
@@ -33,11 +33,12 @@ export function CodeBlockRenderer({ code, language }: CodeBlockRendererProps) {
         variant="ghost"
         className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={handleCopy}
-        aria-label="Copy code">
+        aria-label="Copy code"
+      >
         {hasCopied ? <Check size={16} /> : <Copy size={16} />}
       </Button>
       <pre className="text-sm overflow-x-auto font-mono">
-        <code className={language ? `hljs-${language}` : ""}>{code}</code>
+        <code className={language ? `language-${language}` : ""}>{code}</code>
       </pre>
     </div>
   );

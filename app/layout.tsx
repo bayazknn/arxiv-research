@@ -36,6 +36,9 @@ export default function RootLayout({
   const pathnameList = pathname?.split("/");
   return (
     <html className={geistSans.className} suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="/highlight.css" />
+      </head>
       <body>
         <SidebarProvider>
           <AppSidebar />

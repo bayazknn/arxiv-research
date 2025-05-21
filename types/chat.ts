@@ -28,4 +28,9 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
+  context?: ChatContext;
+}
+
+export interface ChatContext {
+  pdfUrl?: string;
 }

@@ -6,6 +6,7 @@ import {
   BookOpen,
   Bot,
   Command,
+  Forward,
   Frame,
   GalleryVerticalEnd,
   Map,
@@ -22,6 +23,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState } from "react";
+import { Workspace } from "@/types/workspace";
 
 // This is sample data.
 const main_data = {
@@ -32,19 +34,9 @@ const main_data = {
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "Arxiv Research",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      plan: "Academy",
     },
   ],
   navMain: [
@@ -65,71 +57,6 @@ const main_data = {
         {
           title: "Paper",
           url: "/paper",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
         },
       ],
     },
@@ -155,6 +82,7 @@ const main_data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [user, setUser] = useState<any | null>(null);
+  const [workspaces, setWorkpaces] = useState<Workspace[] | null>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -164,8 +92,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         console.error("Error fetching user data:", error);
         return {
           user: {
-            name: "shadcn",
-            email: "m@example.com",
+            name: "guest",
+            email: "guest@example.com",
             avatar: "/avatar.jpg",
           },
         };
@@ -181,29 +109,50 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     };
     getUserData();
+
+    const getWorkspaceData = async () => {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("workspaces").select().eq("user_id", userData?.user?.id);
+      if (data) {
+        setWorkpaces(data);
+      }
+    };
+    getWorkspaceData();
   }, []);
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={main_data.teams} />
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={main_data.navMain} />
-        <NavProjects projects={main_data.projects} />
-      </SidebarContent>
-      <SidebarFooter>
-        {
-          <NavUser
-            user={{
-              name: user?.user?.name,
-              email: user?.user?.email,
-              avatar: user?.user?.avatar,
-            }}
+    <>
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <TeamSwitcher teams={main_data.teams} />
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={main_data.navMain} />
+          <NavProjects
+            projects={
+              workspaces
+                ? workspaces?.map((ws) => ({
+                    name: ws.name,
+                    url: `/workspaces/${ws.id}`,
+                    icon: Forward,
+                  }))
+                : []
+            }
           />
-        }
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+        </SidebarContent>
+        <SidebarFooter>
+          {
+            <NavUser
+              user={{
+                name: user?.user?.name,
+                email: user?.user?.email,
+                avatar: user?.user?.avatar,
+              }}
+            />
+          }
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    </>
   );
 }

@@ -11,7 +11,6 @@ export const updateSession = async (request: NextRequest) => {
         cookies: {
           getAll() {
             const allCookies = request.cookies.getAll();
-            console.log("All cookies in middleware:", allCookies);
             return allCookies;
           },
           setAll(cookiesToSet) {
@@ -28,6 +27,9 @@ export const updateSession = async (request: NextRequest) => {
     );
     const user = await supabase.auth.getUser();
 
+    if (request.nextUrl.pathname.startsWith("/") && user.error && request.nextUrl.pathname === "/sign-up") {
+      return NextResponse.redirect(new URL("/sign-up", request.url));
+    }
     // protected routes
     if (request.nextUrl.pathname.startsWith("/") && user.error && request.nextUrl.pathname !== "/sign-in") {
       return NextResponse.redirect(new URL("/sign-in", request.url));

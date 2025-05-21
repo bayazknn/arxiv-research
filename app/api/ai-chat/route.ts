@@ -1,14 +1,25 @@
 // app/api/ai-chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-import { gemini } from "@/utils/ai/gemini";
+import { simpleAgent } from "@/ai/simple-agent";
 
 export async function POST(req: NextRequest) {
-    const { messages } = await req.json();
-    // const user_msg = messages.pop()
-    // console.log(user_msg)
-    const response = await gemini.invoke(messages);
+    // const { messages } = await req.json();
+    // const response = await gemini.invoke(messages);
+  
+  const state = await req.json()
+  console.log("got state: ", state)
+  const messages = state.messages
+  const pdfUrl = state.pdfUrl
 
-  const reply = response.content || "No response";
-  return NextResponse.json({ reply });
+  const response = await simpleAgent.invoke(
+    {messages: messages},
+    {configurable: {pdfUrl: pdfUrl}}
+  );
+  const responseMessage = response.messages[response.messages.length-1]
+
+  console.log("ai raw response: ", response.messages)
+
+  return NextResponse.json({ role:"assistant", text: responseMessage.content });
+  // return NextResponse.json({ role:"assistant", content: responseMessage.content });
+
 }

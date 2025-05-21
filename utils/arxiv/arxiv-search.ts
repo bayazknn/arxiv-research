@@ -43,7 +43,7 @@ export async function fetchAndFilterArxiv(
   keyword?: string,
   dateFrom?: string,
   dateTo?: string,
-  maxResults = 50
+  maxResults = 10
 ) {
   const url = buildArxivQueryUrl(category, keyword, 0, maxResults);
   const response = await fetch(url);
