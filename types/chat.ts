@@ -34,13 +34,21 @@ export type MessageContent = {
   fileSize?: number
 }
 
-export type Message = {
-  id: string
-  role: MessageRole
-  content: MessageContent[]
-  createdAt: Date
-  annotations: Annotation[]
-  attachments?: Attachment[]
+// export type Message = {
+//   id: string
+//   role: MessageRole
+//   content: MessageContent[]
+//   createdAt: Date
+//   annotations: Annotation[]
+//   attachments?: Attachment[]
+// }
+
+export interface Message {
+  id: string;
+  role: string;
+  content: MessageContent[];
+  createdAt: string;
+  annotations: Annotation[]; // This is the required property we were missing
 }
 
 export type ChatSession = {

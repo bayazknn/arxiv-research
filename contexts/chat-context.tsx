@@ -147,7 +147,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       id: uuidv4(),
       role,
       content,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       annotations: [],
     };
 

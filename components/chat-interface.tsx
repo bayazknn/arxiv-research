@@ -1,17 +1,23 @@
-"use client"
+"use client";
 
-import { ChatProvider } from "@/contexts/chat-context"
-import { ChatMain } from "./chat-main"
+import { ChatProvider } from "@/contexts/chat-context";
+import { ChatMain } from "./chat-main";
+import { ChatSession } from "@/types/chat";
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  pdfUrl: string;
+  onSendMessageToAi: (message: ChatSession, pdfUrl: string) => Promise<{ role: string; content: string }>;
+}
+
+export function ChatInterface({ pdfUrl, onSendMessageToAi }: ChatInterfaceProps) {
   return (
     <ChatProvider>
       <div className="flex flex-col h-full bg-background">
-        <ChatMain />
+        <ChatMain pdfUrl={pdfUrl} onSendMessageToAi={onSendMessageToAi} />
       </div>
     </ChatProvider>
-  )
+  );
 }
 
 // Make sure we have a default export as well
-export default ChatInterface
+export default ChatInterface;

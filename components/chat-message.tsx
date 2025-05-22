@@ -23,6 +23,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message, sessionId, onDelete, onAnnotate }: ChatMessageProps) {
   const handleCopyMessage = () => {
+    console.log("ChatMessage message object (copy):", message);
     const text = message.content.map((c) => c.content).join("\n");
     navigator.clipboard.writeText(text);
   };

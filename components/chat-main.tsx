@@ -22,12 +22,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { MessageContent, Attachment, Annotation } from "@/types/chat";
+import type { MessageContent, Attachment, Annotation, ChatSession, Message } from "@/types/chat";
 
 // Import the MessageSkeleton component
 import { MessageSkeleton } from "./message-skeleton";
 
-export function ChatMain() {
+interface ChatMainProps {
+  pdfUrl: string;
+  onSendMessageToAi: (message: ChatSession, pdfUrl: string) => Promise<{ role: string; content: string }>;
+}
+
+export function ChatMain({ pdfUrl, onSendMessageToAi }: ChatMainProps) {
   // Destructure ALL available functions from useChat
   const {
     currentSessionId,
@@ -314,7 +319,7 @@ export function ChatMain() {
   };
 
   // Update the handleSendMessage function to show loading state
-  const handleSendMessage = (message: string, attachments: Attachment[]) => {
+  const handleSendMessage = async (message: string, attachments: Attachment[]) => {
     if (!message.trim() && attachments.length === 0) return;
 
     const parts: MessageContent[] = [];
@@ -373,60 +378,49 @@ export function ChatMain() {
         fileSize: attachment.size,
       });
     });
-
     try {
-      addMessage("user", parts);
-
-      // Show loading state
       setIsAiLoading(true);
 
-      // Simulate AI response with various content types
-      setTimeout(() => {
+      const updatedMessages = currentSession ? [...currentSession.messages] : [];
+      const userMessage: Message = {
+        id: Math.random().toString(36).substr(2, 9),
+        role: "user",
+        content: parts,
+        createdAt: new Date().toISOString(),
+        annotations: [],
+      };
+      updatedMessages.push(userMessage);
+
+      // Create a properly typed sessionForAi object
+      const sessionForAi: ChatSession = {
+        id: currentSession?.id || Math.random().toString(36).substr(2, 9),
+        name: currentSession?.name || "New Chat",
+        messages: updatedMessages,
+        createdAt: currentSession?.createdAt || new Date(),
+        updatedAt: new Date(),
+        annotations: currentSession?.annotations || [],
+      };
+
+      addMessage("user", parts);
+
+      const response = await onSendMessageToAi(sessionForAi, pdfUrl);
+
+      if (response?.content) {
         addMessage("assistant", [
           {
             type: "markdown",
-            content:
-              "# Here's a sample response\n\nThis is a simulated response from the AI assistant that includes **markdown formatting**, code blocks, and terminal output.\n\nLet me demonstrate how different content types are rendered:",
-          },
-          {
-            type: "code",
-            content:
-              "function calculateFactorial(n) {\n  if (n === 0 || n === 1) {\n    return 1;\n  }\n  return n * calculateFactorial(n - 1);\n}\n\nconsole.log(calculateFactorial(5)); // 120",
-            language: "javascript",
-          },
-          {
-            type: "markdown",
-            content:
-              "The above function calculates the factorial of a number recursively. Here's how you might use it in a React component:",
-          },
-          {
-            type: "code",
-            content:
-              "import React, { useState } from 'react';\n\nexport default function FactorialCalculator() {\n  const [number, setNumber] = useState(5);\n  \n  const calculateFactorial = (n) => {\n    if (n === 0 || n === 1) return 1;\n    return n * calculateFactorial(n - 1);\n  };\n\n  return (\n    <div>\n      <input\n        type=\"number\"\n        value={number}\n        onChange={(e) => setNumber(parseInt(e.target.value))}\n      />\n      <p>Factorial: {calculateFactorial(number)}</p>\n    </div>\n  );\n}",
-            language: "jsx",
-          },
-          {
-            type: "terminal",
-            content:
-              "$ npm install factorial-calculator\n> factorial-calculator@1.0.0 install\n> Building packages...\n\nAdded 42 packages in 3.2s\n$ node calculate.js\nFactorial of 5: 120\n",
-          },
-          {
-            type: "markdown",
-            content:
-              "I hope this demonstrates how different content types are rendered in the chat interface. Let me know if you have any questions!",
+            content: response.content,
           },
         ]);
-
-        // Hide loading state
-        setIsAiLoading(false);
-      }, 3000); // Increased delay to 3 seconds to better demonstrate the skeleton
+      }
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error in message handling:", error);
+    } finally {
       setIsAiLoading(false);
     }
   };
 
-  const handleSelectPrompt = (prompt: string) => {
+  const handleSelectPrompt = async (prompt: string) => {
     // When a prompt is selected, we'll send it directly
     handleSendMessage(prompt, []);
     setShowPrompts(false);
