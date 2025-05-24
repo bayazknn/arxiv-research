@@ -19,28 +19,6 @@ function PaperPageContent() {
   const link = searchParams.get("link");
   const arxivId = link ? link.split("/").pop() : "";
   const pdfUrl = link ? `https://arxiv.org/pdf/${arxivId}` : "";
-  const [pdfText, setPdfText] = useState("");
-  const [pdfPageNumber, setPdfPageNumber] = useState(0);
-
-  const getPdfInfo = async () => {
-    const response = await fetch("/api/extract-pdf-text", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: pdfUrl,
-      }),
-    });
-
-    const { text, totalPages } = await response.json();
-    setPdfText(text);
-    setPdfPageNumber(totalPages);
-  };
-
-  useEffect(() => {
-    getPdfInfo();
-  }, []);
 
   const onSendMessageToAi = async (session: ChatSession, pdfUrl: string) => {
     const response = await fetch("/api/ai-chat", {
@@ -58,10 +36,10 @@ function PaperPageContent() {
       .json()
       .then((res) => {
         return res;
-        console.log(`response returned from local api: ${res}`);
       })
       .catch((err) => {
-        // return { role: "assistant", content: `error happened` };
+        console.error("Error sending message to AI:", err);
+        return null;
       });
   };
 

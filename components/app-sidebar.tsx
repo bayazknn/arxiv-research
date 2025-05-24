@@ -19,7 +19,14 @@ import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState } from "react";
@@ -81,44 +88,48 @@ const main_data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = useState<any | null>(null);
-  const [workspaces, setWorkpaces] = useState<Workspace[] | null>([]);
+  // const [user, setUser] = useState<any | null>(null);
+  // const [workspaces, setWorkpaces] = useState<Workspace[] | null>([]);
   const supabase = createClient();
+  const { user, userWorkspaces, fetchUserContext } = useSidebar();
 
-  useEffect(() => {
-    const getUserData = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Error fetching user data:", error);
-        return {
-          user: {
-            name: "guest",
-            email: "guest@example.com",
-            avatar: "/avatar.jpg",
-          },
-        };
-      } else {
-        setUser({
-          user: {
-            name: data.user.email,
-            email: data.user.email,
-            avatar: "/avatar.jpg",
-          },
-        });
-        return data;
-      }
-    };
-    getUserData();
+  // useEffect(() => {
+  //   const getUserData = async () => {
+  //     const { data, error } = await supabase.auth.getUser();
+  //     if (error) {
+  //       console.error("Error fetching user data:", error);
+  //       return {
+  //         user: {
+  //           name: "guest",
+  //           email: "guest@example.com",
+  //           avatar: "/avatar.jpg",
+  //         },
+  //       };
+  //     } else {
+  //       setUser({
+  //         user: {
+  //           name: data.user.email,
+  //           email: data.user.email,
+  //           avatar: "/avatar.jpg",
+  //         },
+  //       });
+  //     }
+  //   };
+  //   getUserData();
 
-    const getWorkspaceData = async () => {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from("workspaces").select().eq("user_id", userData?.user?.id);
-      if (data) {
-        setWorkpaces(data);
-      }
-    };
-    getWorkspaceData();
-  }, []);
+  //   const getWorkspaceData = async () => {
+  //     const { data: userData, error: userError } = await supabase.auth.getUser();
+  //     const { data, error } = await supabase.from("workspaces").select().eq("user_id", userData?.user?.id);
+  //     if (data) {
+  //       setWorkpaces(data);
+  //     }
+  //   };
+  //   getWorkspaceData();
+  // }, []);
+
+  // useEffect(() => {
+  //   fetchUserContext();
+  // }, [fetchUserContext]);
 
   return (
     <>
@@ -128,10 +139,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
         <SidebarContent>
           <NavMain items={main_data.navMain} />
-          <NavProjects
+          {/* <NavProjects
             projects={
               workspaces
                 ? workspaces?.map((ws) => ({
+                    id: ws.id,
+                    name: ws.name,
+                    url: `/workspaces/${ws.id}`,
+                    icon: Forward,
+                  }))
+                : []
+            }
+          /> */}
+          <NavProjects
+            projects={
+              userWorkspaces
+                ? userWorkspaces?.map((ws) => ({
+                    id: ws.id,
                     name: ws.name,
                     url: `/workspaces/${ws.id}`,
                     icon: Forward,

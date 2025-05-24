@@ -25,21 +25,32 @@ export const updateSession = async (request: NextRequest) => {
         },
       }
     );
-    const user = await supabase.auth.getUser();
 
-    if (request.nextUrl.pathname.startsWith("/") && user.error && request.nextUrl.pathname === "/sign-up") {
-      return NextResponse.redirect(new URL("/sign-up", request.url));
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+
+  const isAuthRoute = pathname === "/sign-in" || pathname === "/sign-up";
+
+  // User not signed in
+  if (!user) {
+    if (isAuthRoute) {
+      return res; // let them access /sign-in and /sign-up
     }
-    // protected routes
-    if (request.nextUrl.pathname.startsWith("/") && user.error && request.nextUrl.pathname !== "/sign-in") {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
-    }
 
-    // if (request.nextUrl.pathname === "/" && !user.error) {
-    //   return NextResponse.redirect(new URL("/protected", request.url));
-    // }
+    // block everything else and redirect to sign-in
+    return NextResponse.redirect(new URL("/sign-in", request.url));
+  }
 
-    return res;
+  // User is signed in and tries to access auth pages
+  if (user && isAuthRoute) {
+    return NextResponse.redirect(new URL("/", request.url)); // or /dashboard
+  }
+
+  // User is signed in and accessing protected page
+  return res;
+
+
   } catch (error: any) {
     return NextResponse.next({
       request: {

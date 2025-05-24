@@ -10,6 +10,7 @@ import { ChatMessage } from "./chat-message";
 import { ChatInputArea } from "./chat-input-area";
 import { PredefinedPrompts } from "./predefined-prompts";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { ChevronDown, Plus, Edit, Trash, Download, Tag, MoreHorizontal, X } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ import type { MessageContent, Attachment, Annotation, ChatSession, Message } fro
 
 // Import the MessageSkeleton component
 import { MessageSkeleton } from "./message-skeleton";
+import SessionsUpload from "./sessions-upload";
 
 interface ChatMainProps {
   pdfUrl: string;
@@ -37,6 +39,7 @@ export function ChatMain({ pdfUrl, onSendMessageToAi }: ChatMainProps) {
   const {
     currentSessionId,
     sessions,
+    localStorageKey,
     addMessage,
     createSession,
     deleteSession,
@@ -47,6 +50,8 @@ export function ChatMain({ pdfUrl, onSendMessageToAi }: ChatMainProps) {
     annotateMessage,
     annotateSession,
   } = useChat();
+
+  const { toast } = useToast();
 
   const [showPrompts, setShowPrompts] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -535,6 +540,7 @@ export function ChatMain({ pdfUrl, onSendMessageToAi }: ChatMainProps) {
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        <SessionsUpload />
 
         <div className="flex items-center">
           <DropdownMenu>

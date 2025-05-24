@@ -8,6 +8,7 @@ import type { ChatSession, Message, Annotation, MessageContent } from "@/types/c
 type ChatContextType = {
   sessions: ChatSession[];
   currentSessionId: string | null;
+  localStorageKey: string;
   createSession: (name?: string) => string;
   deleteSession: (id: string) => void;
   renameSession: (id: string, name: string) => void;
@@ -21,14 +22,14 @@ type ChatContextType = {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export function ChatProvider({ children }: { children: React.ReactNode }) {
+export function ChatProvider({ children, localStorageKey }: { children: React.ReactNode; localStorageKey: string }) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   // Load sessions from localStorage on mount
   useEffect(() => {
     try {
-      const savedSessions = localStorage.getItem("chat-sessions");
+      const savedSessions = localStorage.getItem(localStorageKey);
       if (savedSessions) {
         const parsedSessions = JSON.parse(savedSessions);
         // Convert string dates back to Date objects
@@ -68,10 +69,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       if (sessions.length > 0) {
-        localStorage.setItem("chat-sessions", JSON.stringify(sessions));
+        localStorage.setItem(localStorageKey, JSON.stringify(sessions));
       } else {
         // Clear localStorage if there are no sessions
-        localStorage.removeItem("chat-sessions");
+        localStorage.removeItem(localStorageKey);
       }
     } catch (error) {
       console.error("Error saving sessions to localStorage:", error);
@@ -101,9 +102,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Update localStorage immediately
       try {
         if (updatedSessions.length > 0) {
-          localStorage.setItem("chat-sessions", JSON.stringify(updatedSessions));
+          localStorage.setItem(localStorageKey, JSON.stringify(updatedSessions));
         } else {
-          localStorage.removeItem("chat-sessions");
+          localStorage.removeItem(localStorageKey);
         }
       } catch (error) {
         console.error("Error updating localStorage after session deletion:", error);
@@ -256,6 +257,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       value={{
         sessions,
         currentSessionId,
+        localStorageKey,
         createSession,
         deleteSession,
         renameSession,

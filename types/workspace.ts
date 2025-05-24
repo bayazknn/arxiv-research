@@ -16,12 +16,14 @@ export interface ArxivQueryParams {
 
 
 export interface ArxivPaper {
+  id: string;
   title: string;
   authors: string[];
   summary: string;
   published: string;
   link: string;
-  saved?: boolean;
+  categories: string[];
+  primary_category: string;
   workspace_id?: string;
 }
 

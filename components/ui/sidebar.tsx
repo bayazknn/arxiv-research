@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { createClient } from "@/utils/supabase/client";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -29,6 +30,9 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  fetchUserContext: () => Promise<void>;
+  userWorkspaces: any[];
+  user: any | null;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -77,6 +81,45 @@ const SidebarProvider = React.forwardRef<
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
 
+  const [userWorkspaces, setUserWorkspaces] = React.useState<any[]>([]);
+  const [user, setUser] = React.useState<any | null>(null);
+
+  const fetchUserContext = React.useCallback(async () => {
+    const supabase = createClient();
+
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("User id:", user?.id);
+      if (user) {
+        return user;
+      }
+    };
+    const user = await getUser()
+      .then((user) => {
+        return user;
+      })
+      .catch((err) => {
+        console.error("Error fetching user:", err);
+        return null;
+      });
+    setUser(user);
+    if (user) {
+      const { data, error } = await supabase.from("workspaces").select().eq("user_id", user?.id);
+      if (error) {
+        console.error("Error fetching workspaces:", error);
+      } else {
+        console.log("Fetched workspaces:", data);
+        setUserWorkspaces(data);
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchUserContext();
+  }, [fetchUserContext]);
+
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -103,8 +146,11 @@ const SidebarProvider = React.forwardRef<
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      fetchUserContext,
+      userWorkspaces,
+      user,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, fetchUserContext, userWorkspaces, user]
   );
 
   return (

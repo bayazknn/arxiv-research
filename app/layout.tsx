@@ -1,25 +1,18 @@
 "use client";
+
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Geist } from "next/font/google";
 import { usePathname } from "next/navigation";
 
-const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+// const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
 
 // export const metadata = {
 //   metadataBase: new URL(defaultUrl),
-//   title: "Next.js and Supabase Starter Kit",
-//   description: "The fastest way to build apps with Next.js and Supabase",
+//   title: "Arxiv Research",
+//   description: "Arxiv Research",
 // };
 
 const geistSans = Geist({
@@ -32,21 +25,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const pathnameList = pathname?.split("/");
   return (
     <html className={geistSans.className} suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/highlight.css" />
       </head>
       <body>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <div className="h-screen overflow-hidden">{children}</div>
-          </SidebarInset>
-        </SidebarProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
+  );
+}
+
+function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAuthPage =
+    pathname?.includes("/sign-in") || pathname?.includes("/sign-up") || pathname?.includes("/forgot-password");
+
+  if (isAuthPage) {
+    return (
+      <>
+        {children}
+        <Toaster />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <div className="h-screen overflow-hidden">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+      <Toaster />
+    </>
   );
 }

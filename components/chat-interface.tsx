@@ -11,7 +11,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ pdfUrl, onSendMessageToAi }: ChatInterfaceProps) {
   return (
-    <ChatProvider>
+    <ChatProvider localStorageKey={pdfUrl}>
       <div className="flex flex-col h-full bg-background">
         <ChatMain pdfUrl={pdfUrl} onSendMessageToAi={onSendMessageToAi} />
       </div>

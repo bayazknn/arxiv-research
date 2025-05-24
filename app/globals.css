@@ -97,6 +97,23 @@
     .prose pre {
       background-color: theme("colors.zinc.800") !important;
       border-radius: 0.375rem; }
+
+    html,
+    body,
+    #__next {
+      height: 100%;
+      overflow: hidden;
+      /* This is key to stop the browser's main scrollbar */
+      margin: 0;
+      /* Reset default margins */
+    }
+
+    #__next {
+      display: flex;
+      /* Allows children to effectively use h-full or flex-grow */
+      flex-direction: column;
+      /* Standard for page layout, stacking header/content/footer */
+    }
 }
 
 @layer base {
