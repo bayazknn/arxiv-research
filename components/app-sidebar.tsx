@@ -88,48 +88,11 @@ const main_data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  // const [user, setUser] = useState<any | null>(null);
-  // const [workspaces, setWorkpaces] = useState<Workspace[] | null>([]);
-  const supabase = createClient();
   const { user, userWorkspaces, fetchUserContext } = useSidebar();
 
   // useEffect(() => {
-  //   const getUserData = async () => {
-  //     const { data, error } = await supabase.auth.getUser();
-  //     if (error) {
-  //       console.error("Error fetching user data:", error);
-  //       return {
-  //         user: {
-  //           name: "guest",
-  //           email: "guest@example.com",
-  //           avatar: "/avatar.jpg",
-  //         },
-  //       };
-  //     } else {
-  //       setUser({
-  //         user: {
-  //           name: data.user.email,
-  //           email: data.user.email,
-  //           avatar: "/avatar.jpg",
-  //         },
-  //       });
-  //     }
-  //   };
-  //   getUserData();
-
-  //   const getWorkspaceData = async () => {
-  //     const { data: userData, error: userError } = await supabase.auth.getUser();
-  //     const { data, error } = await supabase.from("workspaces").select().eq("user_id", userData?.user?.id);
-  //     if (data) {
-  //       setWorkpaces(data);
-  //     }
-  //   };
-  //   getWorkspaceData();
-  // }, []);
-
-  // useEffect(() => {
-  //   fetchUserContext();
-  // }, [fetchUserContext]);
+  //   console.log("app sidebar user: ", user);
+  // }, [user]);
 
   return (
     <>
@@ -168,9 +131,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             <NavUser
               user={{
-                name: user?.user?.name,
-                email: user?.user?.email,
-                avatar: user?.user?.avatar,
+                name: user?.name,
+                email: user?.email,
+                avatar: user?.avatar,
               }}
             />
           }
