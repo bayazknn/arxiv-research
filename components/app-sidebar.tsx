@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useMemo } from "react";
 import {
   AudioWaveform,
   BookOpen,
@@ -27,10 +28,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-import { createClient } from "@/utils/supabase/client";
-import { useEffect, useState } from "react";
-import { Workspace } from "@/types/workspace";
 
 // This is sample data.
 const main_data = {
@@ -88,11 +85,19 @@ const main_data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, userWorkspaces, fetchUserContext } = useSidebar();
+  const { user, userWorkspaces, isMobile, setOpenMobile } = useSidebar(); // Get isMobile and setOpenMobile
 
-  // useEffect(() => {
-  //   console.log("app sidebar user: ", user);
-  // }, [user]);
+  // Memoize the projects prop
+  const projects = useMemo(() => {
+    return userWorkspaces
+      ? userWorkspaces?.map((ws) => ({
+          id: ws.id,
+          name: ws.name,
+          url: `/workspaces/${ws.id}`,
+          icon: Forward,
+        }))
+      : [];
+  }, [userWorkspaces]);
 
   return (
     <>
@@ -101,7 +106,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <TeamSwitcher teams={main_data.teams} />
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={main_data.navMain} />
+          <NavMain items={main_data.navMain} isMobile={isMobile} setOpenMobile={setOpenMobile} />
           {/* <NavProjects
             projects={
               workspaces
@@ -114,18 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 : []
             }
           /> */}
-          <NavProjects
-            projects={
-              userWorkspaces
-                ? userWorkspaces?.map((ws) => ({
-                    id: ws.id,
-                    name: ws.name,
-                    url: `/workspaces/${ws.id}`,
-                    icon: Forward,
-                  }))
-                : []
-            }
-          />
+          <NavProjects projects={projects} isMobile={isMobile} setOpenMobile={setOpenMobile} />
         </SidebarContent>
         <SidebarFooter>
           {

@@ -21,6 +21,8 @@ import {
 
 export function NavProjects({
   projects,
+  isMobile,
+  setOpenMobile,
 }: {
   projects: {
     id: string;
@@ -28,9 +30,9 @@ export function NavProjects({
     url: string;
     icon: LucideIcon;
   }[];
+  isMobile: boolean;
+  setOpenMobile: (open: boolean) => void;
 }) {
-  const { isMobile } = useSidebar();
-
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Projects</SidebarGroupLabel>
@@ -38,7 +40,7 @@ export function NavProjects({
         {projects.map((item) => (
           <SidebarMenuItem key={item.id}>
             <SidebarMenuButton asChild>
-              <a href={item.url}>
+              <a href={item.url} onClick={() => isMobile && setOpenMobile(false)}>
                 <Forward />
                 <span>{item.name}</span>
               </a>

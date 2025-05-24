@@ -4,10 +4,11 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
+import { useMemo } from "react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -33,6 +34,7 @@ type SidebarContextProps = {
   fetchUserContext: () => Promise<void>;
   userWorkspaces: any[];
   user: any | null;
+  userId: string | null;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -56,10 +58,19 @@ const SidebarProvider = React.forwardRef<
 >(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
+  const [user, setUser] = React.useState<any | null>(null);
+  const [userId, setUserId] = React.useState<string | null>(null);
+  const [userWorkspaces, setUserWorkspaces] = React.useState<any[]>([]);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen);
+  const [_open, _setOpen] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      const savedState = document.cookie.split("; ").find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
+      return savedState ? savedState.split("=")[1] === "true" : defaultOpen;
+    }
+    return defaultOpen; // For SSR, use defaultOpen
+  });
   const open = openProp ?? _open;
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -81,44 +92,30 @@ const SidebarProvider = React.forwardRef<
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
 
-  const [userWorkspaces, setUserWorkspaces] = React.useState<any[]>([]);
-  const [user, setUser] = React.useState<any | null>(null);
+  const supabase = React.useMemo(() => createClient(), []);
 
-  const fetchUserContext = React.useCallback(async () => {
-    const supabase = createClient();
-
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      console.log("User id:", user?.id);
-      if (user) {
-        return user;
-      }
-    };
-    const user = await getUser()
-      .then((user) => {
-        return user;
-      })
-      .catch((err) => {
-        console.error("Error fetching user:", err);
-        return null;
-      });
-    setUser(user);
-    if (user) {
-      const { data, error } = await supabase.from("workspaces").select().eq("user_id", user?.id);
-      if (error) {
-        console.error("Error fetching workspaces:", error);
-      } else {
-        console.log("Fetched workspaces:", data);
-        setUserWorkspaces(data);
-      }
-    }
-  }, []);
-
+  // Proper cleanup by unsubscribing from auth state changes
   React.useEffect(() => {
-    fetchUserContext();
-  }, [fetchUserContext]);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setUserId(null);
+        setUserWorkspaces([]);
+        // Clear local storage when user signs out
+        localStorage.removeItem("supabase_user");
+        localStorage.removeItem("supabase_workspaces");
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+      // Cleanup local storage
+      localStorage.removeItem("supabase_user");
+      localStorage.removeItem("supabase_workspaces");
+    };
+  }, [supabase]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -132,6 +129,55 @@ const SidebarProvider = React.forwardRef<
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar]);
+
+  const fetchUserContext = React.useCallback(async () => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("useSidebar context user id:", user?.id);
+      if (user) {
+        return user;
+      } else {
+        return null;
+      }
+    };
+
+    try {
+      const currentUser = await getUser(); // Renamed to avoid conflict with state variable 'user'
+      if (currentUser) {
+        setUser(currentUser);
+        setUserId(currentUser.id);
+
+        const { data, error } = await supabase.from("workspaces").select().eq("user_id", currentUser.id);
+
+        if (error) {
+          console.error("useSidebar context Error fetching workspaces:", error);
+        } else {
+          if (data) {
+            console.log("useSidebar contextFetched workspaces:", data);
+            setUserWorkspaces(data);
+          }
+        }
+      } else {
+        // Clear user context if no user is found
+        setUser(null);
+        setUserId(null);
+        setUserWorkspaces([]);
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
+    }
+  }, [supabase, setUser, setUserId, setUserWorkspaces]);
+
+  React.useEffect(() => {
+    // Only fetch user context if userId is not already set, or if it changes
+    // This prevents unnecessary re-fetches and ensures data is loaded when user logs in
+    if (userId === null) {
+      // Only fetch if userId is null initially
+      fetchUserContext();
+    }
+  }, [userId, fetchUserContext]); // Depend on userId to re-fetch when it changes
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
@@ -149,8 +195,21 @@ const SidebarProvider = React.forwardRef<
       fetchUserContext,
       userWorkspaces,
       user,
+      userId,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, fetchUserContext, userWorkspaces, user]
+    [
+      state,
+      open,
+      setOpen,
+      isMobile,
+      openMobile,
+      setOpenMobile,
+      toggleSidebar,
+      fetchUserContext,
+      userWorkspaces,
+      user,
+      userId,
+    ]
   );
 
   return (
@@ -264,7 +323,12 @@ Sidebar.displayName = "Sidebar";
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
-  React.ComponentProps<typeof Button> & { asChild?: boolean; variant?: string; size?: string; ariaLabel?: string }
+  React.ComponentProps<typeof Button> & {
+    asChild?: boolean;
+    variant?: ButtonProps["variant"];
+    size?: ButtonProps["size"];
+    ariaLabel?: string;
+  }
 >(
   (
     { className, onClick, asChild = false, variant = "ghost", size = "icon", ariaLabel = "Toggle Sidebar", ...props },
@@ -585,9 +649,7 @@ const SidebarMenuSkeleton = React.forwardRef<
   }
 >(({ className, showIcon = false, ...props }, ref) => {
   // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+  const width = `${Math.floor(Math.random() * 40) + 50}%`;
 
   return (
     <div

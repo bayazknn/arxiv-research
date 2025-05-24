@@ -1,73 +1,61 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react"; // Import useMemo
 import { createClient } from "@/utils/supabase/client";
-import { Workspace } from "@/types/workspace";
-import WorkspaceCard from "@/components/workspace-card";
+import { ArxivPaper, Workspace } from "@/types/workspace";
+import { useSidebar } from "@/components/ui/sidebar";
+import ArxivPapersList from "@/components/arxiv-paper-list";
 
 export default function WorkspaceDetails() {
+  const { userId, userWorkspaces } = useSidebar();
   const pathname = usePathname();
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
-  const [workspaceDetails, setWorkspaceDetails] = useState<Workspace | null>(null);
-
-  useEffect(() => {
-    const parts = pathname.split("/");
-    const id = parts[parts.length - 1];
-    setWorkspaceId(id);
-    getWorkspaceDetails(id);
-    getWorkspacePapers(id);
-  }, [pathname]);
+  const supabase = useMemo(() => createClient(), []); // Memoize the Supabase client
+  const [papers, setPapers] = useState<ArxivPaper[]>([]);
+  const [workspace, setWorkspace] = useState<Workspace>();
 
   const getWorkspacePapers = async (id: string) => {
-    const supabase = createClient();
-    const { data, error } = await supabase.from("papers").select().eq("workspace_id", id);
-
+    const { data, error } = await supabase.from("papers").select().eq("workspace_id", id).eq("user_id", userId);
     if (error) {
-      console.error("Error fetching data:", error);
+      console.log("Error fetching data at workspace by id:", error);
     } else {
-      console.log("Fetched data:", data);
-    }
-    if (error) {
-      console.error("Error fetching workspace papers:", error);
-    } else {
-      console.log("Fetched workspace papers:", data);
-      setWorkspaceDetails((prev) => ({ ...prev, papers_count: data.length, saved_papers: data }) as Workspace);
+      setPapers(data);
     }
   };
 
-  const getWorkspaceDetails = async (id: string) => {
-    const supabase = createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError) {
-      console.error("Error fetching user:", userError);
-      return;
+  useEffect(() => {
+    console.log(pathname.split("/"));
+    const workspaceId = pathname.split("/")[2];
+    console.log("useEffect workspaceId:", workspaceId);
+    setWorkspace(userWorkspaces.find((workspace) => workspace.id === workspaceId));
+    if (userId) {
+      // Only fetch papers if userId is available
+      getWorkspacePapers(workspaceId);
     }
+  }, [pathname, userId, userWorkspaces]); // Add userId and userWorkspaces to dependencies
 
-    const { data, error } = await supabase
-      .from("papers")
-      .select("*, workspaces(*)") // Select all columns from papers and all columns from workspaces
-      .eq("workspaces.user_id", user?.id); // Filter by user_id in the workspaces table
-    if (error) {
-      console.error("Error fetching workspace details:", error);
-    } else {
-      console.log("Fetched workspace details:", data);
-      if (data && data.length > 0 && data[0].workspaces && data[0].workspaces.length > 0) {
-        setWorkspaceDetails(data[0].workspaces[0] as Workspace);
+  const handleRemovePaper = useCallback(
+    async (paperId: string): Promise<{ result: { succes: boolean } } | undefined> => {
+      const { data, error } = await supabase.from("papers").delete().eq("id", paperId);
+      if (error) {
+        console.error("Error removing paper:", error.message || error);
+        return undefined; // Explicitly return undefined to match the type signature
       } else {
-        setWorkspaceDetails(null);
+        setPapers(papers.filter((paper) => paper.id !== paperId));
+        return { result: { succes: true } };
       }
-    }
-  };
+    },
+    [papers]
+  );
 
   return (
     <>
-      <div className="flex flex-row p-4 justify-start items-start">
-        <div>{workspaceDetails && <WorkspaceCard workspace={workspaceDetails} />}</div>
+      <div className="flex flex-col p-4 justify-start items-start">
+        {workspace ? (
+          <ArxivPapersList papers={papers} workspace={workspace} onRemovePaper={handleRemovePaper} />
+        ) : (
+          <p>Loading workspace...</p>
+        )}
       </div>
     </>
   );
