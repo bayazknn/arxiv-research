@@ -67,12 +67,12 @@ export function buildArxivQueryUrl(
     start: number = 0,
     maxResults: number = 10
   ): string {
+    if (!category && !keyword) {
+      return ""
+    }
     let searchParts: string[] = [];
   
-    if (category) {
-      searchParts.push(`cat:${category}`);
-    }
-  
+
     if (keyword) {
       const keywordList: string[] = keyword.trim().split(" ");
       console.log("Keyword list:", keywordList);
@@ -83,8 +83,12 @@ export function buildArxivQueryUrl(
       });
     }
 
-    const searchQuery = searchParts.length > 1 ? searchParts.join("+AND+") : searchParts.length === 1 ? searchParts[0] : "all:*";
+    if (category) {
+      searchParts.push(`cat:${category}`);
+    }
 
+    const searchQuery = searchParts.length > 1 ? searchParts.join("+AND+") : searchParts.length === 1 ?  searchParts[0] : "all:*";
+    console.log("Search query:", searchQuery);
     let url = `https://export.arxiv.org/api/query?` +
                 `search_query=${searchQuery}` +
                 `&start=${start}` +
@@ -135,18 +139,29 @@ export function buildArxivQueryUrl(
 
 
   export async function fetchAndFilterArxiv(
-    category?: string,
     keyword?: string,
+    category?: string,
     maxResults = 50
   ) {
     try {
+      if (!category && !keyword) {
+        throw new Error("No category or keyword provided");
+      }
+      
       const url = buildArxivQueryUrl(category, keyword, 0, maxResults);
-      const response = await fetch(url);
+      console.log("Fetching arXiv data for search query:", url);
+      const response = await fetch(url); // Use fetchWithRetry
       const xml = await response.text();
       const parsed = await parseStringPromise(xml);
-      const entries = parsed.feed?.entry || [];
-      console.log(entries[0])
-        return entries
+      
+      if (!parsed.feed?.entry) {
+        console.warn("No entries found in arXiv response for search query");
+        return [];
+      }
+      
+      const entries = parsed.feed.entry;
+      console.log(entries[0]);
+      return entries
         .map((entry: any) => ({
           primary_category: entry['arxiv:primary_category'][0]['$'].term,
           categories: entry.category.map((c: any) => c['$'].term).join(", "),
@@ -161,5 +176,3 @@ export function buildArxivQueryUrl(
       throw new Error(`Failed to fetch and filter arXiv data: ${error.message}`);
     }
   }
-
-

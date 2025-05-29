@@ -62,16 +62,21 @@ const SidebarProvider = React.forwardRef<
   const [userId, setUserId] = React.useState<string | null>(null);
   const [userWorkspaces, setUserWorkspaces] = React.useState<any[]>([]);
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      const savedState = document.cookie.split("; ").find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
-      return savedState ? savedState.split("=")[1] === "true" : defaultOpen;
-    }
-    return defaultOpen; // For SSR, use defaultOpen
-  });
-  const open = openProp ?? _open;
+  // Initialize state to undefined to handle SSR properly
+  const [_open, _setOpen] = React.useState<boolean | undefined>(undefined);
+  const [isMounted, setIsMounted] = React.useState(false);
+  
+  // Set initial state in useEffect to ensure it only runs on client
+  React.useEffect(() => {
+    const savedState = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
+    const initialOpen = savedState ? savedState.split("=")[1] === "true" : defaultOpen;
+    _setOpen(initialOpen);
+    setIsMounted(true);
+  }, [defaultOpen]);
+  
+  const open = openProp ?? (_open ?? defaultOpen);
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value;
@@ -262,11 +267,9 @@ const Sidebar = React.forwardRef<
           data-sidebar="sidebar"
           data-mobile="true"
           className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
+          style={{
+            "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+          } as React.CSSProperties}
           side={side}>
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>

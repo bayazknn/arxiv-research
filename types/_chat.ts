@@ -1,5 +1,4 @@
-import type React from "react"
-export type MessageRole = "user" | "assistant" | "system" | "tool"
+export type MessageRole = "user" | "assistant" | "system"
 
 export type CodeBlockAction = "copy" | "run" | "save"
 
@@ -26,33 +25,30 @@ export type Attachment = {
   isImage?: boolean
 }
 
-export type ToolCall = {
-  id: string
-  name: string
-  args: Record<string, any>
-  result?: any
-  status: "pending" | "completed" | "error"
-}
-
 export type MessageContent = {
-  type: "text" | "code" | "markdown" | "image" | "file" | "terminal" | "tool-call" | "tool-result" | "ui"
+  type: "text" | "code" | "markdown" | "image" | "file" | "terminal"
   content: string
   language?: string
   fileName?: string
   fileType?: string
   fileSize?: number
-  toolCall?: ToolCall
-  component?: React.ReactNode
 }
 
-export type Message = {
-  id: string
-  role: MessageRole
-  content: MessageContent[]
-  createdAt: Date
-  annotations: Annotation[]
-  attachments?: Attachment[]
-  toolCalls?: ToolCall[]
+// export type Message = {
+//   id: string
+//   role: MessageRole
+//   content: MessageContent[]
+//   createdAt: Date
+//   annotations: Annotation[]
+//   attachments?: Attachment[]
+// }
+
+export interface Message {
+  id: string;
+  role: string;
+  content: MessageContent[];
+  createdAt: string;
+  annotations: Annotation[]; // This is the required property we were missing
 }
 
 export type ChatSession = {
@@ -68,13 +64,4 @@ export type PredefinedPrompt = {
   id: string
   title: string
   prompt: string
-  category: string
-}
-
-export type AIProvider = "openai" | "anthropic" | "google" | "custom"
-
-export type AIModel = {
-  id: string
-  name: string
-  provider: AIProvider
 }

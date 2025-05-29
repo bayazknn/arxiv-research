@@ -1,12 +1,10 @@
 // app/api/ai-chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { simpleAgent } from "@/ai/simple-agent";
+import { simpleAgent , llm, getPdfTextContext} from "@/ai/simple-agent";
 import { ChatSession } from "@/types/chat";
 
+
 export async function POST(req: NextRequest) {
-    // const { messages } = await req.json();
-    // const response = await gemini.invoke(messages);
-  
   const state = await req.json()
   console.log("got state: ", state)
   const session = state.session as ChatSession
@@ -21,18 +19,22 @@ export async function POST(req: NextRequest) {
     }
   ))
 
-  console.log("messages edited: ", messages)
 
-  const response = await simpleAgent.invoke(
-    {messages: messages},
-    {configurable: {pdfUrl: pdfUrl}}
-  );
-console.log("ai raw response object: ", response)
-  const responseMessage = response.messages[response.messages.length-1]
 
-  // console.log("ai raw response: ", response.messages)
+  try {
+    const response = await simpleAgent.invoke(
+      {messages: messages},
+      {configurable: {pdfUrl: pdfUrl}}
+    );
+    console.log("ai raw response object: ", response)
+    const responseMessage = response.messages[response.messages.length-1]
 
-  
-  return NextResponse.json({ role:"assistant", content: responseMessage.content });
-
+    return NextResponse.json({ role:"assistant", content: responseMessage.content });
+  } catch (error: any) {
+    console.error("Error invoking simpleAgent:", error);
+    return NextResponse.json(
+      { error: "Failed to get AI response", details: error.message },
+      { status: 500 }
+    );
+  }
 }

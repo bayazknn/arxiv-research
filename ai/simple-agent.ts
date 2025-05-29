@@ -1,3 +1,20 @@
+// Polyfill for Promise.withResolvers
+if (typeof Promise.withResolvers === 'undefined') {
+  Promise.withResolvers = <T>(): {
+    promise: Promise<T>;
+    resolve: (value: T | PromiseLike<T>) => void;
+    reject: (reason?: any) => void;
+  } => {
+    let resolve: (value: T | PromiseLike<T>) => void;
+    let reject: (reason?: any) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve: resolve!, reject: reject! };
+  };
+}
+
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { BaseMessageLike } from "@langchain/core/messages";
 import { RunnableConfig } from "@langchain/core/runnables";
@@ -19,7 +36,7 @@ export function cachePDFText(key: string, text: string): void {
   pdfCache[key] = text;
 }
 
-const llm = new ChatGoogleGenerativeAI({
+export const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash",
   temperature: 0,
   maxRetries: 2,
@@ -33,7 +50,7 @@ const extractPdf = async(pdfUrl: string) => {
   return text
 }
 
-const getPdfTextContext = (pdfUrl:string) => {
+export const getPdfTextContext = (pdfUrl:string) => {
   if (pdfUrl in pdfCache){
     return pdfCache[pdfUrl]
   } else {
