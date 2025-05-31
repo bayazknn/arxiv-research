@@ -1,0 +1,52 @@
+[
+  {
+    "id": "9fd137c7-9b15-48cf-a459-4276e4bbe5f5",
+    "name": "New Chat",
+    "messages": [
+      {
+        "id": "5c49baf6-9d61-4815-a637-9fdfddac9020",
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "content": "summary the paper"
+          }
+        ],
+        "createdAt": "2025-05-31T17:58:26.239Z",
+        "annotations": []
+      },
+      {
+        "id": "ec610952-8058-450b-8cc2-d4fa0ab56f5b",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "markdown",
+            "content": "This paper introduces a new task called Aggregative Question Answering (AQA), which requires models to reason across a large number of user-chatbot interactions to answer questions that require aggregation of information. To facilitate research in this area, the authors created a benchmark dataset called WildChat-AQA, derived from real-world chatbot conversations, containing aggregative questions with multiple-choice answers. Experiments using existing methods, including fine-tuning, RAG, and a custom retrieval method called PROBE, show that current approaches struggle with the scale and reasoning demands of the task. The paper highlights the need for new methods capable of extracting collective insights from large-scale conversational data and makes the dataset and code publicly available."
+          }
+        ],
+        "createdAt": "2025-05-31T17:58:26.240Z",
+        "annotations": [],
+        "updatedAt": "2025-05-31T17:58:31.709Z"
+      },
+      {
+        "id": "bdd88374-2223-46d0-849b-164c6c8bf3c5",
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "content": "The paper introduces Aggregative Question Answering. What are the key differences between this task and traditional question answering, and why are these differences important for understanding societal trends from conversational data?"
+          }
+        ],
+        "createdAt": "2025-05-31T18:08:32.942Z",
+        "annotations": []
+      },
+      {
+        "id": "7608b41d-c8e3-4a7d-b941-a08ec52ded41",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "markdown",
+            "content": "The key differences between Aggregative Question Answering (AQA) and traditional question answering lie in the scale of data considered and the type of reasoning required:\n\n1.  **Scale of Data:** Traditional QA typically derives answers from one or a few documents. AQA, on the other hand, requires reasoning over thousands of user-chatbot interactions.\n2.  **Type of Reasoning:** Traditional QA often focuses on retrieving specific facts or information present in the given text. AQA demands holistic reasoning across the entire dataset to identify trends, patterns, and collective insights.\n3.  **Contextual Understanding:** AQA needs to account for contextual features like temporal, geographical, and user-specific information associated with conversations, whereas traditional QA often treats interactions as isolated data points.\n\nThese differences are crucial for understanding societal trends from conversational data because:\n\n*   **Revealing Collective Insights:** By aggregating and reasoning across conversations, AQA can uncover societal interests, emerging trends, and collective concerns that would be missed by analyzing individual interactions in isolation.\n*   **Identifying Demographic-Specific Concerns:** AQA allows for the identification of concerns specific to particular demographics, enabling a more nuanced understanding of societal issues.\n*   **Tracking Temporal Shifts:** AQA can track changes in societal sentiment and attitudes over time, providing valuable insights into how public opinion evolves.\n*   **Understanding Regional Differences:** By considering geographical context, AQA can reveal regional variations in user concerns and societal attitudes.\n\nIn essence, AQA moves beyond simply extracting information to deriving meaningful insights about society by leveraging the collective intelligence embedded in large-scale conversational data. This capability is essential for applications such as informing public policy, understanding consumer behavior, and monitoring public health."
+          }
+        ],
+        "createdAt": "

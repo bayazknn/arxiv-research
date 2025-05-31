@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server"
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
+import { useArxivPaperStore } from "@/lib/arxiv-store";
+
+// Define interface for the expected request body
+
 
 const PREDEFINED_PROMPTS = [
   {
@@ -75,8 +81,106 @@ const PREDEFINED_PROMPTS = [
   },
 ]
 
-export async function GET(request: Request) {
-  try {
+export async function POST(request: Request) {
+
+  const pdfContent = await request.json();
+  console.log("Received request data:", pdfContent); // Log received data
+
+// Construct the prompt using the received paper data
+const prompt = `You are question generator for arxiv paper. Generate 6 questions for this paper which content text is below.
+  Your questions are responded from experts. You use paper abstract to generate questions.
+  Your generated questions cover main points of paper. 
+  Dont generate simple questions like "What is this paper about?" or "What is the main contribution of this paper?". 
+  Your generated questions are used in phd research. Questions must be creative and reveal deep insights of paper. 
+  Your response format is json and dont include any other text. Your responses are directly parsed as json.
+  
+  #Question Model Format#
+  Every question item has title, prompt, category.
+  title: short format of question title
+  prompt: Question has 50 words max. Prompt has include questions and be formatted as modern llm prompt engineering rules.
+  category: One single word to categorize the questions. Category keyword reflects the type of question.
+  #End Question Model Format#
+
+
+
+
+  #Response Format#
+  [
+    {
+    title: "Explain a research papcontenter",
+    prompt: "Can you explain the key findings and methodology of this research paper?",
+    category: "research",
+    },
+    {
+    title: "Explain limitations",
+    prompt: "What are the limitations or potential weaknesses of the approach described in this paper?",
+    category: "critique",
+    },
+    {
+    title: "Compare with other papers",
+    prompt: "How does this paper compare to other recent work in the same field?",
+    category: "analysis",
+    }
+  ]
+  #End Response Format#
+
+
+
+
+  #Negative Prompt for Response#
+  Dont add introdutory wordings. Follow below templates:
+  <Comparative Response>
+    <Bad Response>
+    The study compares brute force TSK, cascading GFT, and FCM-based approaches. 
+    What are the trade-offs in terms of accuracy, complexity, and interpretability between these three GFS strategies when applied to the Airfoil Self Noise dataset?
+    </Bad Response>
+    <Good Response>
+    What are the trade-offs in terms of accuracy, complexity, and interpretability between these three GFS strategies when applied to the Airfoil Self Noise dataset?
+    </Good Response>
+  </Comparative Response>
+  <Comparative Response>
+    <Bad Response>
+      The paper explores three GFS strategies. What are the trade-offs in terms of explainability, computational cost, and predictive accuracy between brute force TSK, cascading GFT, and FCM-based approaches, especially considering their application to the Airfoil Self Noise dataset?
+    </Bad Response>
+    <Good Response>
+      What are the trade-offs in terms of explainability, computational cost, and predictive accuracy between brute force TSK, cascading GFT, and FCM-based approaches, especially considering their application to the Airfoil Self Noise dataset?
+    </Good Response>
+  </Comparative Response>
+  #End Negative Prompt for Response#
+  
+
+
+  #Paper Content Text#
+  ${pdfContent}
+  #End Paper Content Text#
+  `
+
+
+  try{
+    const model = google("gemini-2.0-flash-exp");
+    console.log("model", model)
+
+    const result = await generateText({
+      model,
+      prompt,
+    })
+  
+    console.log("predefined prompt result raw", result)
+    const cleaned = result.text
+    .replace(/^```json\s*/i, "")  // Remove ```json at the start
+    .replace(/```$/, "")          // Remove ``` at the end
+    .trim();   
+    console.log("predefined prompt result cleaned", cleaned)
+
+    const parsedResult = JSON.parse(cleaned)
+    console.log("predefined result json", parsedResult)
+  
+    return Response.json({
+      prompts: parsedResult,
+      total: parsedResult.length,
+    });
+
+  }catch(error){
     const { searchParams } = new URL(request.url)
     const limit = Number.parseInt(searchParams.get("limit") || "6")
     const category = searchParams.get("category")
@@ -96,8 +200,9 @@ export async function GET(request: Request) {
       prompts: selectedPrompts,
       total: filteredPrompts.length,
     })
-  } catch (error) {
-    console.error("Error fetching prompts:", error)
-    return NextResponse.json({ error: "Failed to fetch prompts" }, { status: 500 })
   }
+
+
+
+
 }

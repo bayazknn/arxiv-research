@@ -1,21 +1,56 @@
-// app/api/extract-pdf-text/route.ts
+import 'lib/polyfills';
+// pages/api/extract-pdf.ts
 import { NextRequest, NextResponse } from "next/server";
-import { extractText, getDocumentProxy } from "unpdf";
+import pdf from 'pdf-parse';
 
+// Optional: Type definition for the request body
+interface ExtractPdfRequestBody {
+    pdfUrl: string;
+}
 
 export async function POST(req: NextRequest) {
-  try {
-    console.log(`request to pdf extract: ${req}`)
-    const {url} = await req.json()
-    console.log(`request body url: ${url}`)
 
-    const buffer = await fetch(url).then((res) => res.arrayBuffer());
-    const pdf = await getDocumentProxy(new Uint8Array(buffer));
-    const { totalPages, text } = await extractText(pdf, { mergePages: true });
-    console.log("extracted text pag number: ", totalPages)
-    return NextResponse.json({ text: text, totalPages: totalPages });
-  } catch (error: any) {
-    console.error("PDF parse error:", error.message);
-    return NextResponse.json({ error: "Failed to parse PDF" }, { status: 500 });
-  }
+
+
+    const { pdfUrl } = await req.json();
+    console.log("extract pdf text api route hit", pdfUrl)
+
+    if (!pdfUrl) {
+        return NextResponse.json({ message: 'PDF URL is required' });
+    }
+
+    try {
+        const response = await fetch(pdfUrl);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch PDF from URL: ${response.status} ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        console.log('[Server] PDF fetched successfully. Starting parsing...');
+
+        const data = await pdf(buffer);
+        console.log("parsed pdf data info", data.info)
+        console.log("parsed pdf data metadata", data.metadata)
+
+        return NextResponse.json({
+            success: true,
+            pdfUrl: pdfUrl,
+            numPages: data.numpages,
+            metadata: {
+                info: data.info,
+                metadata: data.metadata,
+            },
+            fullText: data.text
+        });
+
+    } catch (error) {
+        console.error('[Server] An error occurred while processing PDF:', error);
+        if (error instanceof Error) {
+            return NextResponse.json({ success: false, message: error.message });
+        }
+        return NextResponse.json({ success: false, message: 'An unknown error occurred.' });
+    }
 }

@@ -53,6 +53,7 @@ export type Message = {
   annotations: Annotation[]
   attachments?: Attachment[]
   toolCalls?: ToolCall[]
+  metadata?:any| null
 }
 
 export type ChatSession = {
@@ -62,6 +63,7 @@ export type ChatSession = {
   createdAt: Date
   updatedAt: Date
   annotations: Annotation[]
+  metadata?: Record<string, any> | null
 }
 
 export type PredefinedPrompt = {

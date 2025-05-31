@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Sparkles } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { useArxivPaperStore } from "@/lib/arxiv-store"
 
 interface Prompt {
   id: string
@@ -24,12 +26,33 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const store = useArxivPaperStore();
+  const selectArxivPaperByLink = store?.selectArxivPaperByLink || (() => undefined);
+
+
+  
 
   const fetchPrompts = async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch("/api/prompts?limit=8")
+      const link = searchParams.get("link")
+      if (!link) {
+        throw new Error("Paper link not found")
+      }
+      const paper = selectArxivPaperByLink(link)
+      if (!paper) {
+        throw new Error("Paper not found")
+      }
+      const response = await fetch("/api/prompts?",{
+        method:"POST",
+        body: JSON.stringify({
+          link: paper.link,
+          title: paper.title,
+          summary: paper.summary,
+        })
+      })
       if (!response.ok) {
         throw new Error("Failed to fetch prompts")
       }
@@ -53,21 +76,21 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
     onOpenChange(false)
   }
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      research: "bg-blue-100 text-blue-800",
-      summary: "bg-green-100 text-green-800",
-      coding: "bg-purple-100 text-purple-800",
-      analysis: "bg-orange-100 text-orange-800",
-      critique: "bg-red-100 text-red-800",
-      debugging: "bg-yellow-100 text-yellow-800",
-      optimization: "bg-indigo-100 text-indigo-800",
-      education: "bg-pink-100 text-pink-800",
-      testing: "bg-teal-100 text-teal-800",
-      architecture: "bg-cyan-100 text-cyan-800",
-      database: "bg-emerald-100 text-emerald-800",
-    }
-    return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800"
+  const getCategoryColor = () => {
+    const colors = [
+      "bg-blue-100 text-blue-800 border-blue-200",
+      "bg-green-100 text-green-800 border-green-200",
+      "bg-purple-100 text-purple-800 border-purple-200",
+      "bg-orange-100 text-orange-800 border-orange-200",
+      "bg-red-100 text-red-800 border-red-200",
+      "bg-yellow-100 text-yellow-800 border-yellow-200",
+      "bg-indigo-100 text-indigo-800 border-indigo-200",
+      "bg-pink-100 text-pink-800 border-pink-200",
+      "bg-teal-100 text-teal-800 border-teal-200",
+      "bg-cyan-100 text-cyan-800 border-cyan-200",
+      "bg-emerald-100 text-emerald-800 border-emerald-200",
+    ]
+    return colors[Math.floor(Math.random() * colors.length)] || "bg-gray-100 text-gray-800 border-gray-200"
   }
 
   return (
@@ -99,12 +122,12 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
 
           {!loading && !error && prompts.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {prompts.map((prompt) => (
-                <Card key={prompt.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              {prompts.map((prompt, index) => (
+                <Card key={index} className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="font-medium text-sm">{prompt.title}</h3>
-                      <Badge variant="secondary" className={getCategoryColor(prompt.category)}>
+                      <Badge variant="secondary" className={`py-0.5 text-[10px] ${getCategoryColor()}`}>
                         {prompt.category}
                       </Badge>
                     </div>

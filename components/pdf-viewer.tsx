@@ -1,48 +1,95 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+// Import PDFDocumentProxy directly from pdfjs-dist
+import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
+
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-
 
 interface PdfViewerProps {
   pdfUrl: string;
   width?: number;
 }
 
+const getLocalStorageKey = (url: string) => `pdf_text_cache_${btoa(url)}`;
+
 export default function PdfViewer({ pdfUrl, width = 800 }: PdfViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
   const [error, setError] = useState<string | null>(null);
+  const [pdfText, setPdfText] = useState<string | null>(null);
+  const [isTextExtracting, setIsTextExtracting] = useState<boolean>(false);
+  let fullText = ""
 
-  // Set up the worker
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        // Set the worker source to the correct path
-        // Use the local worker file
         pdfjs.GlobalWorkerOptions.workerSrc = `/pdf-worker/pdf.worker.min.mjs`;
       } catch (error) {
         console.error('Error setting up PDF.js worker:', error);
         setError('Failed to load PDF viewer. Please refresh the page.');
       }
     }
+    
   }, []);
 
-  // Format the PDF URL to use our proxy
   const getProxyPdfUrl = (url: string) => {
     if (!url) return '';
-    // If it's already a proxy URL, return as is
     if (url.includes('/api/pdf-proxy')) return url;
-    // Otherwise, create a proxy URL
     return `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
   };
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-  };
+  const extractAndStorePdfText = useCallback(async (pdfDocument: PDFDocumentProxy, originalPdfUrl: string) => {
+    // const localStorageKey = getLocalStorageKey(originalPdfUrllocalStorageKey);
+    const localStorageKey = "pdf-content"
+
+    // if (typeof window !== 'undefined') {
+    //   const cachedText = localStorage.getItem(localStorageKey);
+    //   if (cachedText) {
+    //     console.log('PDF text loaded from localStorage.');
+    //     setPdfText(cachedText);
+    //     return;
+    //   }
+    // }
+
+    setIsTextExtracting(true);
+    console.log('Extracting PDF text...');
+    try {
+      for (let i = 1; i <= pdfDocument.numPages; i++) {
+        const page = await pdfDocument.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map(item => ('str' in item ? item.str : ''))
+          .join(' ');
+        // fullText +=  (i < pdfDocument.numPages ? `\n\n\n--------------------------Page ${i}--------------------------\n` + pageText : pageText)
+        fullText +=  `\n\n\n--------------------------Page ${i}--------------------------\n` + pageText
+      }
+
+      console.log("pdfDocument.numPages", pdfDocument.numPages)
+
+      localStorage.setItem(localStorageKey, fullText);
+      setPdfText(fullText);
+
+    } catch (err) {
+      console.error('Error extracting text:', err);
+      setError('Failed to extract text from PDF.');
+    } finally {
+      setIsTextExtracting(false);
+    }
+  }, []);
+
+  // Corrected onDocumentLoadSuccess function:
+  // The 'document' parameter directly receives the PDFDocumentProxy object
+  const onDocumentLoadSuccess = useCallback(
+    (document: PDFDocumentProxy) => { // Type 'document' directly as PDFDocumentProxy
+      setNumPages(document.numPages);
+      extractAndStorePdfText(document, pdfUrl);
+    },
+    [extractAndStorePdfText, pdfUrl],
+  );
 
   const onDocumentLoadError = (error: Error) => {
     console.error('Error loading PDF:', error);
@@ -141,6 +188,21 @@ export default function PdfViewer({ pdfUrl, width = 800 }: PdfViewerProps) {
             />
           </Document>
         </div>
+      </div>
+
+      <div className="p-4 bg-white border-t border-gray-200 mt-4">
+        <h3>Extracted Text:</h3>
+        {isTextExtracting && (
+          <p className="text-gray-600">Extracting text from PDF...</p>
+        )}
+        {pdfText && !isTextExtracting && (
+          <div className="border p-2 bg-gray-50 max-h-64 overflow-y-auto whitespace-pre-wrap text-sm">
+            {pdfText}
+          </div>
+        )}
+        {!pdfText && !isTextExtracting && !error && (
+            <p className="text-gray-400">No text extracted yet.</p>
+        )}
       </div>
     </div>
   );

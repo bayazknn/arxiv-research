@@ -125,27 +125,19 @@
     @apply bg-background text-foreground;
   }
 }
-.paper-page {
-  display: flex;
-  flex-direction: row;
-}
-
-.paper-page iframe {
-
-}
 
 
 /* Custom styles for code blocks */
 .prose pre {
-  @apply bg-transparent p-0 m-0;
+  @apply p-0 m-0;
 }
 
 .prose code {
-  @apply bg-muted px-1 py-0.5 rounded text-xs;
+  @apply px-1 py-0.5 rounded text-xs;
 }
 
 .prose pre code {
-  @apply bg-transparent p-0;
+  @apply p-1;
 }
 
 /* Ensure syntax highlighter works properly */
@@ -192,4 +184,3 @@ pre[class*="language-"] {
   font-size: 12px !important;
   line-height: 1.4 !important;
 }
-

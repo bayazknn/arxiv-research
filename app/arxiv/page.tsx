@@ -45,7 +45,11 @@ export default function ArxivSearch() {
       if (!searchQueries.keyword && !searchQueries.category) {
         return []; // Return empty array if no keyword or category is provided
       }
-      return fetchAndFilterArxiv(searchQueries?.keyword, searchQueries?.category, searchQueries?.maxResults);
+      const fetchdata = await fetchAndFilterArxiv(searchQueries?.keyword, searchQueries?.category, searchQueries?.maxResults);
+      console.log("react query fetchdata to store in zustand", fetchdata)
+      setArxivPapers(fetchdata)
+      console.log("arxiv paper after fetcihng in zustand", arxivPapers)
+      return fetchdata;
     },
     refetchOnWindowFocus: true, // refetch on tab focus
     retry: 3, // retry failed request 3 times

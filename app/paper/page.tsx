@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from 'next/dynamic';
+import { useChatStore } from "@/lib/chat-store";
 
 // Dynamically import the ChatInterface with SSR disabled
 const ChatInterface = dynamic(
@@ -21,6 +22,8 @@ import { AlertCircle } from "lucide-react";
 import { ChatSession } from "@/types/chat";
 
 export default function PaperPage() {
+  const {arxivPaper} = useChatStore();
+  
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <PaperPageContent />
@@ -91,58 +94,24 @@ function PaperPageContent() {
   };
 
   return (
-    <div className="flex flex-row ml-3 m-2 gap-4 h-screen overflow-hidden paper-page">
-      {/* <div className="w-full h-screen relative">
-        {iframeLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-            <Skeleton className="w-full h-full" />
+    <>
+    <div className="flex flex-col pt-2 h-screen">
+      <div className="flex flex-row overflow-hidden">
+        <div className="w-7/12 h-full relative m-2 overflow-hidden">
+          <PdfViewer pdfUrl={pdfUrl} />
+        </div>
+        <div className="w-5/12 h-full bg-background">
+          <div className="h-full overflow-y-auto pr-4">
+            <ChatInterface />
           </div>
-        )}
-        {iframeError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 p-4 rounded-lg">
-            <AlertCircle className="h-10 w-10 mb-4" />
-            <p className="text-lg font-semibold mb-2">Failed to load PDF</p>
-            <p className="text-sm text-center">
-              The PDF could not be loaded. This might be due to an invalid link or network issues.
-            </p>
-            {pdfUrl && (
-              <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Try opening the PDF directly
-              </a>
-            )}
-          </div>
-        )}
-        {pdfUrl && (
-          <iframe
-            src={pdfUrl}
-            className={`w-full h-full ${iframeLoading || iframeError ? 'hidden' : ''}`}
-            title="arXiv PDF"
-            allowFullScreen
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-          />
-        )}
-        {!pdfUrl && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
-            <p>No PDF link provided. Please provide a valid arXiv link.</p>
-          </div>
-        )}
-      </div> */}
-
-      <div className="w-full h-screen relative">
-        <PdfViewer pdfUrl={pdfUrl}/>
+        </div>
       </div>
-
-
-      <div className="h-screen bg-background">
-        {/* <ChatInterface onSendMessageToAi={onSendMessageToAi} pdfUrl={pdfUrl} /> */}
-      <ChatInterface></ChatInterface>
+      <div className="flex w-full h-[20px]">
+        .....
       </div>
     </div>
+
+    </>
+
   );
 }

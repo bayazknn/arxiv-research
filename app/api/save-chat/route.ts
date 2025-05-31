@@ -26,13 +26,18 @@ export async function POST(req: NextRequest, res: NextResponse & { params: any }
         ...arxivResponse[0],
         workspace_id: workspaceId
     }
+
+    console.log("arxiv fetchArxivByIds response: ", arxivResponse)
+    console.log("arxiv fetchArxivByIds response type: ", typeof arxivResponse[0])
+    console.log("arxiv fetchArxivByIds response link: ", arxivResponse[0].link)
     console.log("Inserting paper with payload:", payload);
 
+    
     // Fetch papers with related chats
 const { data: papersWithChat, error: paperWithChatError } = await supabase
   .from("papers")
   .select(`*, chats(*)`)
-  .eq("link", arxivResponse.link)
+  .eq("link", arxivResponse[0].link)
   .eq("workspace_id", workspaceId);
 
 console.log("paperWithChat: ", papersWithChat);

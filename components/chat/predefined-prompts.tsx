@@ -16,11 +16,25 @@ export function PredefinedPrompts({ onSelectPrompt }: PredefinedPromptsProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+
+
+
   const fetchPrompts = async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch("/api/prompts?limit=6")
+
+      const pdfContent = localStorage.getItem("pdf-content")
+    
+      
+
+
+      const response = await fetch("/api/prompts",{
+        method:"POST",
+        body: JSON.stringify({
+          pdfContent: pdfContent,
+        })
+      })
       if (!response.ok) {
         throw new Error("Failed to fetch prompts")
       }
@@ -37,21 +51,21 @@ export function PredefinedPrompts({ onSelectPrompt }: PredefinedPromptsProps) {
     fetchPrompts()
   }, [])
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      research: "bg-blue-100 text-blue-800 border-blue-200",
-      summary: "bg-green-100 text-green-800 border-green-200",
-      coding: "bg-purple-100 text-purple-800 border-purple-200",
-      analysis: "bg-orange-100 text-orange-800 border-orange-200",
-      critique: "bg-red-100 text-red-800 border-red-200",
-      debugging: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      optimization: "bg-indigo-100 text-indigo-800 border-indigo-200",
-      education: "bg-pink-100 text-pink-800 border-pink-200",
-      testing: "bg-teal-100 text-teal-800 border-teal-200",
-      architecture: "bg-cyan-100 text-cyan-800 border-cyan-200",
-      database: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    }
-    return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
+  const getCategoryColor = () => {
+    const colors = [
+      "bg-blue-100 text-blue-800 border-blue-200",
+      "bg-green-100 text-green-800 border-green-200",
+      "bg-purple-100 text-purple-800 border-purple-200",
+      "bg-orange-100 text-orange-800 border-orange-200",
+      "bg-red-100 text-red-800 border-red-200",
+      "bg-yellow-100 text-yellow-800 border-yellow-200",
+      "bg-indigo-100 text-indigo-800 border-indigo-200",
+      "bg-pink-100 text-pink-800 border-pink-200",
+      "bg-teal-100 text-teal-800 border-teal-200",
+      "bg-cyan-100 text-cyan-800 border-cyan-200",
+      "bg-emerald-100 text-emerald-800 border-emerald-200",
+    ]
+    return colors[Math.floor(Math.random() * colors.length)] || "bg-gray-100 text-gray-800 border-gray-200"
   }
 
   if (loading) {
@@ -113,23 +127,23 @@ export function PredefinedPrompts({ onSelectPrompt }: PredefinedPromptsProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {prompts.map((prompt) => (
+        {prompts.map((prompt, index) => (
           <Card
-            key={prompt.id}
+            key={index}
             className="hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer group"
           >
             <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-sm font-medium leading-tight group-hover:text-primary transition-colors">
+              <div className="flex flex-col items-start justify-between">
+                <CardTitle className="text-sm p-1 font-medium leading-tight group-hover:text-primary transition-colors">
                   {prompt.title}
                 </CardTitle>
-                <Badge variant="secondary" className={getCategoryColor(prompt.category)}>
+                <Badge variant="secondary" className={`py-0.5 text-[10px] ${getCategoryColor()}`}>
                   {prompt.category}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-muted-foreground text-xs leading-relaxed line-clamp-3">{prompt.prompt}</p>
+              <p className="text-muted-foreground text-xs leading-relaxed line-clamp-10">{prompt.prompt}</p>
               <Button
                 onClick={() => onSelectPrompt(prompt.prompt)}
                 variant="outline"

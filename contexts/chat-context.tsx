@@ -4,17 +4,20 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import type { ChatSession, Message, Annotation, MessageContent } from "@/types/chat"
+import {useSearchParams} from "next/navigation"
 
 type ChatContextType = {
   sessions: ChatSession[]
   currentSessionId: string | null
+  localStorageKey: string
+  setLocalStorageKey: (key: string) => void
   createSession: (name?: string) => string
   deleteSession: (id: string) => void
   renameSession: (id: string, name: string) => void
   exportSession: (id: string) => string
   setCurrentSession: (id: string) => void
-  addMessage: (role: "user" | "assistant" | "system", content: MessageContent[]) => string // Modified to return message ID
-  updateMessageContent: (sessionId: string, messageId: string, contentChunk: string) => void // New function for streaming
+  addMessage: (role: "user" | "assistant" | "system", content: MessageContent[], metadata?: any) => string // Modified to return message ID
+  updateMessageContent: (sessionId: string, messageId: string, contentChunk: string, metadata?: any) => void // New function for streaming
   deleteMessage: (sessionId: string, messageId: string) => void
   annotateMessage: (sessionId: string, messageId: string, annotation: Omit<Annotation, "id" | "createdAt">) => void
   annotateSession: (sessionId: string, annotation: Omit<Annotation, "id" | "createdAt">) => void
@@ -25,7 +28,13 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined)
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  let localStorageKey = searchParams.get("link") || "chat-sessions"
 
+
+  const setLocalStorageKey = (key: string) => {
+    localStorageKey = key
+  }
   // Enhanced color palette for annotations with better contrast and variety
   const getUniqueRandomColor = () => {
     const colors = [
@@ -56,7 +65,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Load sessions from localStorage on mount
   useEffect(() => {
     try {
-      const savedSessions = localStorage.getItem("chat-sessions")
+      const savedSessions = localStorage.getItem(localStorageKey)
       if (savedSessions) {
         const parsedSessions = JSON.parse(savedSessions)
         // Convert string dates back to Date objects
@@ -96,10 +105,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       if (sessions.length > 0) {
-        localStorage.setItem("chat-sessions", JSON.stringify(sessions))
+        localStorage.setItem(localStorageKey, JSON.stringify(sessions))
       } else {
         // Clear localStorage if there are no sessions
-        localStorage.removeItem("chat-sessions")
+        localStorage.removeItem(localStorageKey)
       }
     } catch (error) {
       console.error("Error saving sessions to localStorage:", error)
@@ -129,9 +138,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Update localStorage immediately
       try {
         if (updatedSessions.length > 0) {
-          localStorage.setItem("chat-sessions", JSON.stringify(updatedSessions))
+          localStorage.setItem(localStorageKey, JSON.stringify(updatedSessions))
         } else {
-          localStorage.removeItem("chat-sessions")
+          localStorage.removeItem(localStorageKey)
         }
       } catch (error) {
         console.error("Error updating localStorage after session deletion:", error)
@@ -165,7 +174,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setCurrentSessionId(id)
   }
 
-  const addMessage = (role: "user" | "assistant" | "system", content: MessageContent[]) => {
+  const addMessage = (role: "user" | "assistant" | "system", content: MessageContent[], metadata?: any) => {
     if (!currentSessionId) {
       const newId = createSession()
       setCurrentSessionId(newId)
@@ -177,6 +186,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       content,
       createdAt: new Date(),
       annotations: [],
+      metadata,
     }
 
     setSessions((prev) =>
@@ -192,9 +202,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     )
     return newMessage.id // Return the ID of the newly added message
   }
-
+3
   // New function to update message content for streaming
-  const updateMessageContent = (sessionId: string, messageId: string, contentChunk: string) => {
+  const updateMessageContent = (sessionId: string, messageId: string, contentChunk: string, metadata?: any) => {
     setSessions((prev) =>
       prev.map((session) => {
         if (session.id !== sessionId) return session
@@ -209,7 +219,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
               if (part.type === "text" || part.type === "markdown") {
                 return {
                   ...part,
-                  content: (part.content || "") + contentChunk,
+                  content: (part.content || "") + contentChunk.replaceAll("\n\n", "\n"),
                 }
               }
               return part
@@ -223,6 +233,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
             return {
               ...message,
+              metadata,
               content: updatedContent,
               updatedAt: new Date(), // Update session timestamp on message update
             }
@@ -329,6 +340,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       value={{
         sessions,
         currentSessionId,
+        localStorageKey,
+        setLocalStorageKey,
         createSession,
         deleteSession,
         renameSession,

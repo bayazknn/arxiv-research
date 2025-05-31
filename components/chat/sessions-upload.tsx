@@ -101,14 +101,15 @@ export default function SessionsUpload() {
 
     const sessionArray = localStorage.getItem(link);
     const data = {
-      sessions: sessionArray ? JSON.parse(sessionArray) : [],
+      // sessions: sessionArray ? JSON.parse(sessionArray) : [],
+      sessions: sessionArray,
       link: link,
       workspaceId: selectedWorkspace,
     };
     setIsUploading(true);
 
     try {
-      const response = await fetch("/api/save_chat_sessions", {
+      const response = await fetch("/api/save-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

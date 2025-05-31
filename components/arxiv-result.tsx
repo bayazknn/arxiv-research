@@ -1,5 +1,5 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArxivPaper } from "@/types/workspace";
+import { ArxivPaper, Workspace } from "@/types/workspace";
 import { Button } from "./ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { useState } from "react";
@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { useSidebar } from "./ui/sidebar";
+import { Loader2 } from "lucide-react";
+import { useChatStore } from "@/lib/chat-store";
 
 interface ArxivResultsProps {
   paper: ArxivPaper;
@@ -22,60 +24,55 @@ type Inputs = {
 export default function ArxivResult({ paper }: ArxivResultsProps) {
   const { toast } = useToast();
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
   const paperForm = useForm<Inputs>();
-  const { userWorkspaces, user } = useSidebar();
+  const {userWorkspaces: workspaces} = useSidebar();
+  const {setArxivPaper} = useChatStore();
 
-  // const savePaperForm = useForm<Inputs>();
-  // const savePaperFormArr = results.map((paper) => useForm<Inputs>());
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     const { workspaceId } = data;
     handleSave(paper, workspaceId);
   };
-
+  
   const handleSave = async (paper: ArxivPaper, workspaceId: string) => {
-    const supabase = createClient();
-    const { data: existedPaper, error: fetchError } = await supabase
-      .from("papers")
-      .select()
-      .eq("workspace_id", workspaceId)
-      .eq("link", paper.link);
+    const payload = {
+      ...paper,
+      created_at: new Date().toISOString(),
+      workspace_id: workspaceId,
+    };
 
-    if (fetchError) {
-      console.error("Error fetching saved papers:", fetchError);
-      return;
-    }
+    const savePaper = async (payload: ArxivPaper) => {
+      const res = await fetch("/api/paper/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }).then((res) => res.json());
+      console.log("Paper saved:", res);
 
-    if (existedPaper.length > 0) {
-      toast({
-        title: "Paper already saved",
-        description: `${paper.title}`,
-        className: "bg-red-50 border-red-500 text-red-900 shadow-lg",
-      });
-      setIsSaved(true);
-      return;
-    } else {
-      const payload = {
-        ...paper,
-        created_at: new Date().toISOString(),
-        workspace_id: workspaceId,
-        user_id: user.id,
-        email: user.email,
-      };
-
-      const { data, error } = await supabase.from("papers").insert([payload]);
-      if (error) {
-        console.error("Error saving paper:", error);
-      } else {
+      if (res.success) {
+        setIsSaved(true);
         toast({
           title: "Paper saved",
-          description: `${paper.title}`,
-          className: "bg-green-50 border-green-500 text-green-900 shadow-lg",
+          description: "Paper has been saved to your workspace.",
         });
-        setIsSaved(true);
+        return res.data;
+      } else {
+        toast({
+          title: "Paper not saved",
+          description: "Paper has not been saved to your workspace.",
+        });
+        return res.error;
       }
     }
-  };
+    
+    setIsSaving(true);
+    await savePaper(payload);
+    setIsSaving(false);
+    setArxivPaper(paper);
+  }
 
   return (
     <div className="w-full mb-4">
@@ -103,7 +100,7 @@ export default function ArxivResult({ paper }: ArxivResultsProps) {
                       <SelectValue placeholder="Select Workspace" />
                     </SelectTrigger>
                     <SelectContent>
-                      {userWorkspaces.map((workspace) => (
+                      {workspaces.map((workspace: Workspace) => (
                         <SelectItem key={workspace.id} value={workspace.id}>
                           {workspace.name}
                         </SelectItem>
@@ -118,6 +115,8 @@ export default function ArxivResult({ paper }: ArxivResultsProps) {
             )}
             <Separator orientation="vertical" className="m-1"></Separator>
             <Button onClick={() => router.push(`/paper?link=${paper.link}`)}>Open</Button>
+            <Separator orientation="vertical" className="m-1"></Separator>
+            {isSaving && <Loader2 className="animate-spin" />}
           </CardFooter>
         </Card>
       </div>

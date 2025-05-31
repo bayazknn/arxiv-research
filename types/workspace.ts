@@ -23,4 +23,5 @@ export interface ArxivPaper {
   categories: string;
   primary_category: string;
   workspace_id?: string;
+  content?: string;
 }

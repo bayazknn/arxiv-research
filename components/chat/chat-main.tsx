@@ -9,7 +9,7 @@ import { PredefinedPrompts } from "./predefined-prompts"
 import { TextSelectionPopup } from "./text-selection-popup"
 import { PromptsDialog } from "./prompts-dialog"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, Plus, Edit, Trash, Download, Tag, MoreHorizontal, X } from "lucide-react"
+import { ChevronDown, Plus, Edit, Trash, Download, Tag, MoreHorizontal, X, Bot } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +24,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils"
 import type { MessageContent, Attachment, Annotation } from "@/types/chat"
 import { MessageSkeleton } from "./message-skeleton"
+import  SessionsUpload  from "./sessions-upload"
+import { useSearchParams } from "next/navigation"
 
 export function ChatMain() {
+  const searchParams = useSearchParams()
+  const pdfUrl = searchParams.get("link")
+
+
   const {
     currentSessionId,
     sessions,
@@ -71,6 +77,8 @@ export function ChatMain() {
   useEffect(() => {
     scrollToBottom()
   }, [currentSession?.messages, isAiLoading])
+
+
 
   // Show prompts when starting a new session
   useEffect(() => {
@@ -313,6 +321,144 @@ export function ChatMain() {
     }
   }, [handleAddTag])
 
+
+  const handleSendLanggraphMessage = useCallback(async (message: string, attachments: Attachment[]) => {
+    if (!message.trim() && attachments.length === 0) return
+
+    const parts: MessageContent[] = []
+
+    if (message.trim()) {
+      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g
+      let lastIndex = 0
+      let match
+
+      while ((match = codeBlockRegex.exec(message)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push({
+            type: "text",
+            content: message.slice(lastIndex, match.index),
+          })
+        }
+
+        parts.push({
+          type: "code",
+          content: match[2],
+          language: match[1] || "javascript",
+        })
+
+        lastIndex = match.index + match[0].length
+      }
+
+      if (lastIndex < message.length) {
+        parts.push({
+          type: "text",
+          content: message.slice(lastIndex),
+        })
+      }
+
+      if (parts.length === 0) {
+        parts.push({
+          type: "text",
+          content: message,
+        })
+      }
+    }
+
+    attachments.forEach((attachment) => {
+      parts.push({
+        type: "file",
+        content: attachment.url,
+        fileName: attachment.name,
+        fileType: attachment.type,
+        fileSize: attachment.size,
+      })
+    })
+
+    // Add user message to our session
+    addMessage("user", parts)
+
+    // Clear quoted text after sending
+    setQuotedText("")
+
+    // Set loading state
+    setIsAiLoading(true)
+    let aggAssistantResponse = "";
+    let existingNode = "";
+    let assistantMessageId = "";
+    // Add an initial assistant message placeholder and get its ID
+    // let assistantMessageId = addMessage("assistant", [{ type: "markdown", content: "" }], {"sender": "assistant"})
+    try {
+      // Send to AI API
+      const eventSource = new EventSource(`http://localhost:8000/stream?arxiv_paper_url=https://arxiv.org/pdf/2505.03512v1.pdf`)
+
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          // const text = data.output || JSON.stringify(data, null, 2)
+          console.log(data)
+          const text = data.content
+          const langgraph_node = data.langgraph_node
+
+          if (currentSessionId) {
+
+            if (existingNode !== langgraph_node) {
+              existingNode = langgraph_node;
+              aggAssistantResponse = "";
+              aggAssistantResponse += text;
+              assistantMessageId = addMessage("assistant", [{ type: "markdown", content: "" }], {"sender": langgraph_node})
+              updateMessageContent(currentSessionId, assistantMessageId, aggAssistantResponse, {"sender": langgraph_node})  
+            }
+            aggAssistantResponse += text;
+            updateMessageContent(currentSessionId, assistantMessageId, aggAssistantResponse, {"sender": langgraph_node});
+          }
+        } catch (e) {
+          console.error("Error parsing SSE message:", e)
+        }
+      }
+  
+      eventSource.onerror = (err) => {
+        console.error("SSE connection error:", err)
+        eventSource.close()
+      }
+
+      eventSource.addEventListener("done", (e) => {
+        console.log("Stream finished:", e.data)
+        eventSource.close()
+      })
+
+      
+      
+      // Ensure loading state is reset after successful stream completion
+      setIsAiLoading(false);
+
+    } catch (error) {
+      console.error("Error sending message:", error)
+
+      // Fallback response on error
+      const fallbackResponses = [
+        "I apologize for the technical difficulty. I'm currently running in demo mode. Here's what I can help you with:\n\n• **Programming**: Code examples and explanations\n• **Mathematics**: Calculations and problem solving\n• **Research**: Information and analysis\n• **General questions**: Various topics and discussions\n\nWhat would you like to explore?",
+
+        'I\'m experiencing some connectivity issues, but I can still assist you! Try asking me about:\n\n```python\n# Example: Python function\ndef greet(name):\n    return f"Hello, {name}!"\n\nprint(greet("World"))\n```\n\nI can help with code, math, research, and more. What interests you?',
+
+        "Technical issues aside, I'm here to help! Here are some things I can demonstrate:\n\n## Capabilities\n- Code generation and review\n- Mathematical calculations\n- Research assistance\n- Problem solving\n- Explanations and tutorials\n\nWhat would you like to try?",
+      ]
+
+      const randomFallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)]
+
+      // Update the existing assistant message with the error fallback
+      if (currentSessionId) {
+        updateMessageContent(currentSessionId, assistantMessageId, randomFallback, {"sender": "assistant"});
+      } else {
+        // If somehow there's no current session, add a new message (less likely)
+        addMessage("assistant", [{ type: "markdown", content: randomFallback }]);
+      }
+
+    } finally {
+      setIsAiLoading(false)
+    }
+  }, [addMessage, updateMessageContent, setIsAiLoading])
+
   // Custom AI message handler
   const handleSendMessage = useCallback(async (message: string, attachments: Attachment[]) => {
     if (!message.trim() && attachments.length === 0) return
@@ -380,6 +526,7 @@ export function ChatMain() {
 
     try {
       // Send to AI API
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -397,6 +544,8 @@ export function ChatMain() {
             },
           ],
           model: selectedModel,
+          pdfUrl: pdfUrl,
+          pdfContent: localStorage.getItem("pdf-content") || "",
         }),
       })
 
@@ -446,12 +595,12 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
         }
 
         const textChunk = decoder.decode(value, { stream: true }); // Use { stream: true } for proper multi-byte character decoding
-        accumulatedAssistantResponse += textChunk;
+        // accumulatedAssistantResponse += textChunk;
 
         if (currentSessionId) {
           // Update the assistant's message with the entire accumulated content so far.
           // The ChatMessage component should then render this markdown content.
-          updateMessageContent(currentSessionId, assistantMessageId, accumulatedAssistantResponse);
+          updateMessageContent(currentSessionId, assistantMessageId, textChunk);
         }
       }
       // Ensure loading state is reset after successful stream completion
@@ -616,6 +765,10 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
 
           <Button onClick={() => handleCreateSession()} size="icon" variant="outline" type="button" className="h-8 w-8">
             <Plus className="h-3 w-3" />
+          </Button>
+          <SessionsUpload />
+          <Button onClick={() => handleSendLanggraphMessage("auto message from user", [])} size="icon" variant="outline" type="button" className="h-8 w-8">
+            <Bot/>
           </Button>
         </div>
 

@@ -9,9 +9,10 @@ import { Copy, MoreVertical, Tag, User, Bot, Trash, Check } from "lucide-react"
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import prism from "react-syntax-highlighter/dist/esm/styles/prism/prism"
 import { ToolResult } from "./tool-result"
 import { useToast } from "@/hooks/use-toast"
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageProps {
   message: Message
@@ -111,6 +112,7 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
       return (
         <div className="prose prose-sm max-w-none dark:prose-invert">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               code(props: any) { // Cast props to any to bypass type checking
                 const { node, inline, className, children, ...restProps } = props;
@@ -121,13 +123,13 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
                 if (!inline && language) {
                   return (
                     <div className="relative group">
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <div className="absolute top-2 right-2 transition-opacity z-10">
                         <Button
                           variant="secondary"
                           size="sm"
                           onClick={() => handleCopyCode(String(children).replace(/\n$/, ""), codeId)}
                           type="button"
-                          className="h-7 px-2 text-xs"
+                          className="h-7 m-1 px-2 text-xs"
                         >
                           {copiedStates[codeId] ? (
                             <>
@@ -142,28 +144,31 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
                           )}
                         </Button>
                       </div>
-                      <SyntaxHighlighter
+            
+                        <SyntaxHighlighter
                         language={language}
-                        style={oneDark} // Use style prop directly
+                        style={prism}
                         customStyle={{
                           fontSize: "13px",
                           lineHeight: "1.5",
                           margin: 0,
-                          padding: "16px",
-                          background: "#282c34",
+                          padding: "8px",
+                          // background: "#282c34",
                         }}
                       >
                         {String(children).replace(/\n$/, "")}
                       </SyntaxHighlighter>
+
+                      
                     </div>
                   )
+                } else {
+                  return (
+                    <code className="px-1 py-0.5 rounded text-xs font-mono">
+                      {children}
+                    </code>
+                  )
                 }
-
-                return (
-                  <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
-                    {children}
-                  </code>
-                )
               },
               pre({ children }) {
                 return <div className="not-prose">{children}</div>
@@ -195,18 +200,18 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
           >
             {isUser ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
           </div>
-          <span className="text-xs font-medium text-muted-foreground">{isUser ? "You" : "Assistant"}</span>
+          <span className="text-xs font-medium text-muted-foreground">{isUser ? "You" : "Assistant" + (message.metadata?.sender ? ` (${message.metadata?.sender})` : "")}</span>
           <span className="text-xs text-muted-foreground">
             {message.createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
 
         {/* Message content */}
-        <div className="space-y-3 relative">
+        <div className="space-y-3 relative overflow-hidden">
           {message.content.map((content, index) => {
             if (content.type === "text") {
               return (
-                <div key={index} className="text-sm whitespace-pre-wrap leading-relaxed">
+                <div key={index} className="text-sm break-words whitespace-pre-wrap leading-relaxed">
                   {content.content || ""}
                 </div>
               )
@@ -220,7 +225,7 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
               const codeId = `code-${index}-${Math.random().toString(36).substr(2, 9)}`
               return (
                 <div key={index} className="relative group not-prose">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute top-2 right-2 transition-opacity z-10">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -243,14 +248,14 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
                   </div>
                   <SyntaxHighlighter
                     language={content.language || "javascript"}
-                    style={oneDark} // Use style prop directly
+                    style={prism} // Use style prop directly
                     className="rounded-md"
                     customStyle={{
                       fontSize: "13px",
                       lineHeight: "1.5",
                       margin: 0,
-                      padding: "16px",
-                      background: "#282c34",
+                      padding: "8px",
+                      // background: "#282c34",
                     }}
                   >
                     {content.content || ""}
@@ -260,8 +265,8 @@ export const ChatMessage = React.memo(function ChatMessage({ message, sessionId,
             } else if (content.type === "terminal") {
               const terminalId = `terminal-${index}-${Math.random().toString(36).substr(2, 9)}`
               return (
-                <div key={index} className="relative group">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div key={index} className="relative">
+                  <div className="absolute top-2 right-2 transition-opacity z-10">
                     <Button
                       variant="secondary"
                       size="sm"

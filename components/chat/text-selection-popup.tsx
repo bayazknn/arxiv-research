@@ -26,6 +26,7 @@ export function TextSelectionPopup({ onCopy, onQuote, onAction1, onAction2 }: Te
     const handleSelection = () => {
       const selection = window.getSelection()
       const text = selection?.toString().trim()
+      console.log("Select text action seelcted text", text)
 
       if (text && text.length > 0) {
         setSelectedText(text)
@@ -90,7 +91,7 @@ export function TextSelectionPopup({ onCopy, onQuote, onAction1, onAction2 }: Te
   }
 
   const handleQuote = () => {
-    onQuote?.(selectedText)
+    onQuote?.(selectedText.replaceAll("\n", " ").replaceAll("\t", " ").trim())
     setIsVisible(false)
   }
 
