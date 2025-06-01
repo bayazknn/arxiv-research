@@ -21,6 +21,7 @@ type ChatContextType = {
   deleteMessage: (sessionId: string, messageId: string) => void
   annotateMessage: (sessionId: string, messageId: string, annotation: Omit<Annotation, "id" | "createdAt">) => void
   annotateSession: (sessionId: string, annotation: Omit<Annotation, "id" | "createdAt">) => void
+  updateMessageContentLanggraph: (sessionId: string, messageId: string, contentChunk: string, metadata?: any) => void // New function for streaming
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -219,7 +220,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
               if (part.type === "text" || part.type === "markdown") {
                 return {
                   ...part,
-                  content: (part.content || "") + contentChunk.replaceAll("\n\n", "\n"),
+                  content: (part.content || "") + contentChunk,
                 }
               }
               return part
@@ -243,6 +244,48 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }),
     )
   }
+
+
+  const updateMessageContentLanggraph = (sessionId: string, messageId: string, contentChunk: string, metadata?: any) => {
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id !== sessionId) return session
+
+        return {
+          ...session,
+          messages: session.messages.map((message) => {
+            if (message.id !== messageId) return message
+
+            // Find the first text or markdown content part and append the chunk
+            const updatedContent = message.content.map((part) => {
+              if (part.type === "text" || part.type === "markdown") {
+                return {
+                  ...part,
+                  content: contentChunk,
+                }
+              }
+              return part
+            })
+
+            // If no text/markdown part exists, add a new markdown part
+            if (!updatedContent.some(part => part.type === "text" || part.type === "markdown")) {
+               updatedContent.push({ type: "markdown", content: contentChunk });
+            }
+
+
+            return {
+              ...message,
+              metadata,
+              content: updatedContent,
+              updatedAt: new Date(), // Update session timestamp on message update
+            }
+          }),
+          updatedAt: new Date(), // Update session timestamp on message update
+        }
+      }),
+    )
+  }
+
 
   const deleteMessage = (sessionId: string, messageId: string) => {
     setSessions((prev) =>
@@ -349,6 +392,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setCurrentSession,
         addMessage,
         updateMessageContent, // Add the new function to the context value
+        updateMessageContentLanggraph,
         deleteMessage,
         annotateMessage,
         annotateSession,

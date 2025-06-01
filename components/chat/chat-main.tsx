@@ -37,6 +37,7 @@ export function ChatMain() {
     sessions,
     addMessage,
     updateMessageContent, // Import the new function
+    updateMessageContentLanggraph,
     createSession,
     deleteSession,
     renameSession,
@@ -398,7 +399,7 @@ export function ChatMain() {
           // const text = data.output || JSON.stringify(data, null, 2)
           console.log(data)
           const text = data.content
-          const langgraph_node = data.langgraph_node
+          const langgraph_node = data?.langgraph_node || "kenan"
 
           if (currentSessionId) {
 
@@ -407,10 +408,12 @@ export function ChatMain() {
               aggAssistantResponse = "";
               aggAssistantResponse += text;
               assistantMessageId = addMessage("assistant", [{ type: "markdown", content: "" }], {"sender": langgraph_node})
-              updateMessageContent(currentSessionId, assistantMessageId, aggAssistantResponse, {"sender": langgraph_node})  
+              // updateMessageContent(currentSessionId, assistantMessageId, aggAssistantResponse, {"sender": langgraph_node}) 
+              updateMessageContentLanggraph(currentSessionId, assistantMessageId, text, {"sender": langgraph_node})  
+
             }
             aggAssistantResponse += text;
-            updateMessageContent(currentSessionId, assistantMessageId, aggAssistantResponse, {"sender": langgraph_node});
+            updateMessageContentLanggraph(currentSessionId, assistantMessageId, text, {"sender": langgraph_node});
           }
         } catch (e) {
           console.error("Error parsing SSE message:", e)
