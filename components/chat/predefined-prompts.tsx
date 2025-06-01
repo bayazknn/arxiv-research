@@ -7,49 +7,64 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { RefreshCw, Sparkles } from "lucide-react"
 import type { PredefinedPrompt } from "@/types/chat"
 
-interface PredefinedPromptsProps {
-  onSelectPrompt: (prompt: string) => void
+
+interface Prompt {
+  title: string
+  prompt: string
+  category: string
 }
 
-export function PredefinedPrompts({ onSelectPrompt }: PredefinedPromptsProps) {
+export function PredefinedPrompts({ onSelectPrompt }: { onSelectPrompt: (prompt: string) => void }) {
   const [prompts, setPrompts] = useState<PredefinedPrompt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pdfContent, setPdfContent] = useState<string>("")
+
+  useEffect(() => {
+    setPdfContent("")
+    const pdfText = localStorage.getItem("pdf-content") || ""
+    setPdfContent(pdfText)
+    fetchPrompts(pdfText)
+  }, [])
 
 
 
-
-  const fetchPrompts = async () => {
-    setLoading(true)
-    setError(null)
+  // fetchPrompts can be called with or without pdfContent
+  const fetchPrompts = async (pdfContent: string) => {
+    setLoading(true);
+    setError(null);
     try {
-
-      const pdfContent = localStorage.getItem("pdf-content")
-    
-      
-
-
-      const response = await fetch("/api/prompts",{
-        method:"POST",
+      const response = await fetch("/api/prompts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           pdfContent: pdfContent,
-        })
-      })
+        }),
+      });
       if (!response.ok) {
-        throw new Error("Failed to fetch prompts")
+        throw new Error("Failed to fetch prompts");
       }
-      const data = await response.json()
-      setPrompts(data.prompts || [])
+      const data = await response.json();
+      console.log("predefined api route response: ", data);
+      if (data && Array.isArray(data.prompts)) {
+        setPrompts(data.prompts);
+        setLoading(false);
+      } else {
+        setPrompts([]);
+        setError("No prompts available.");
+        setLoading(false);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch prompts")
+      setPrompts([]);
+      setError(err instanceof Error ? err.message : "Failed to fetch prompts");
+      setLoading(false);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  useEffect(() => {
-    fetchPrompts()
-  }, [])
 
   const getCategoryColor = () => {
     const colors = [
@@ -96,7 +111,7 @@ export function PredefinedPrompts({ onSelectPrompt }: PredefinedPromptsProps) {
           <p className="text-destructive mb-2">{error}</p>
           <p className="text-sm text-muted-foreground">Unable to load prompts from the server</p>
         </div>
-        <Button onClick={fetchPrompts} variant="outline" className="gap-2">
+        <Button onClick={() => fetchPrompts(pdfContent)} variant="outline" className="gap-2">
           <RefreshCw className="h-4 w-4" />
           Try Again
         </Button>
@@ -115,45 +130,58 @@ export function PredefinedPrompts({ onSelectPrompt }: PredefinedPromptsProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
+
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-semibold">Choose a prompt to get started</h3>
         </div>
-        <Button onClick={fetchPrompts} variant="outline" size="sm" className="gap-2">
+        <Button onClick={() => fetchPrompts(pdfContent)} variant="outline" size="sm" className="gap-2">
           <RefreshCw className="h-3 w-3" />
           Refresh
         </Button>
       </div>
 
+      {error && (
+        <div className="text-center py-4 text-red-600">
+          {error}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {prompts.map((prompt, index) => (
-          <Card
-            key={index}
-            className="hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer group"
-          >
-            <CardHeader className="pb-2">
-              <div className="flex flex-col items-start justify-between">
-                <CardTitle className="text-sm p-1 font-medium leading-tight group-hover:text-primary transition-colors">
-                  {prompt.title}
-                </CardTitle>
-                <Badge variant="secondary" className={`py-0.5 text-[10px] ${getCategoryColor()}`}>
-                  {prompt.category}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-muted-foreground text-xs leading-relaxed line-clamp-10">{prompt.prompt}</p>
-              <Button
-                onClick={() => onSelectPrompt(prompt.prompt)}
-                variant="outline"
-                className="w-full text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                Use This Prompt
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+        {Array.isArray(prompts) && prompts.length > 0 ? (
+          prompts.map((prompt, index) => (
+            <Card
+              key={index}
+              className="hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer group"
+            >
+              <CardHeader className="pb-2">
+                <div className="flex flex-col items-start justify-between">
+                  <CardTitle className="text-sm p-1 font-medium leading-tight group-hover:text-primary transition-colors">
+                    {prompt.title}
+                  </CardTitle>
+                  <Badge variant="secondary" className={`py-0.5 text-[10px] ${getCategoryColor()}`}>
+                    {prompt.category}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-muted-foreground text-xs leading-relaxed line-clamp-10">{prompt.prompt}</p>
+                <Button
+                  onClick={() => onSelectPrompt(prompt.prompt)}
+                  variant="outline"
+                  className="w-full text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  Use This Prompt
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        ) : !loading && !error ? (
+          <div className="text-center py-8">
+            <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No prompts available</p>
+          </div>
+        ) : null}
       </div>
     </div>
   )

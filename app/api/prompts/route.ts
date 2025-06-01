@@ -4,7 +4,11 @@ import { generateText } from "ai";
 import { useArxivPaperStore } from "@/lib/arxiv-store";
 
 // Define interface for the expected request body
-
+interface Prompt {
+  title: string
+  prompt: string
+  category: string
+}
 
 const PREDEFINED_PROMPTS = [
   {
@@ -83,8 +87,8 @@ const PREDEFINED_PROMPTS = [
 
 export async function POST(request: Request) {
 
-  const pdfContent = await request.json();
-  console.log("Received request data:", pdfContent); // Log received data
+  const {pdfContent} = await request.json();
+  console.log("Received request data:", pdfContent.trim().substring(0, 100) + '...'); // Log received data
 
 // Construct the prompt using the received paper data
 const prompt = `You are question generator for arxiv paper. Generate 6 questions for this paper which content text is below.
@@ -156,50 +160,55 @@ const prompt = `You are question generator for arxiv paper. Generate 6 questions
   `
 
 
-  try{
+  try {
     const model = google("gemini-2.0-flash-exp");
-    console.log("model", model)
 
     const result = await generateText({
       model,
       prompt,
-    })
-  
-    console.log("predefined prompt result raw", result)
-    const cleaned = result.text
-    .replace(/^```json\s*/i, "")  // Remove ```json at the start
-    .replace(/```$/, "")          // Remove ``` at the end
-    .trim();   
-    console.log("predefined prompt result cleaned", cleaned)
-
-    const parsedResult = JSON.parse(cleaned)
-    console.log("predefined result json", parsedResult)
-  
-    return Response.json({
-      prompts: parsedResult,
-      total: parsedResult.length,
     });
+    console.log("ai response result", result.text.trim().substring(0, 50) + '...');
 
-  }catch(error){
-    const { searchParams } = new URL(request.url)
-    const limit = Number.parseInt(searchParams.get("limit") || "6")
-    const category = searchParams.get("category")
+    const cleaned = result.text
+      .replace(/^```json\s*/i, "") // Remove ```json at the start
+      .replace(/```$/, "") // Remove ``` at the end
+      .trim();
 
-    let filteredPrompts = PREDEFINED_PROMPTS
+    const parsedResult = JSON.parse(cleaned);
 
-    // Filter by category if specified
-    if (category && category !== "all") {
-      filteredPrompts = PREDEFINED_PROMPTS.filter((prompt) => prompt.category === category)
+    return Response.json({
+      prompts: parsedResult ?? [],
+      total: Array.isArray(parsedResult) ? parsedResult.length : 0,
+    });
+  } catch (error) {
+    try {
+      const { searchParams } = new URL(request.url);
+      const limit = Number.parseInt(searchParams.get("limit") || "6");
+      const category = searchParams.get("category");
+
+      let filteredPrompts = PREDEFINED_PROMPTS;
+
+      // Filter by category if specified
+      if (category && category !== "all") {
+        filteredPrompts = PREDEFINED_PROMPTS.filter((prompt) => prompt.category === category);
+      }
+
+      // Shuffle and limit the results
+      const shuffled = [...filteredPrompts].sort(() => 0.5 - Math.random());
+      const selectedPrompts = shuffled.slice(0, limit);
+
+      return NextResponse.json({
+        prompts: selectedPrompts ?? [],
+        total: Array.isArray(filteredPrompts) ? filteredPrompts.length : 0,
+      });
+    } catch (finalError) {
+      // Final fallback: always return a valid structure
+      return NextResponse.json({
+        prompts: [],
+        total: 0,
+        error: "Unexpected error occurred while generating prompts."
+      });
     }
-
-    // Shuffle and limit the results
-    const shuffled = [...filteredPrompts].sort(() => 0.5 - Math.random())
-    const selectedPrompts = shuffled.slice(0, limit)
-
-    return NextResponse.json({
-      prompts: selectedPrompts,
-      total: filteredPrompts.length,
-    })
   }
 
 

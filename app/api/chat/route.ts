@@ -8,7 +8,7 @@ import {createClient} from "@/utils/supabase/server"
 export async function POST(req: Request) {
   console.log("=== New Chat Request ===");
   console.log(`Time: ${new Date().toISOString()}`);
-  const {messages, model, pdfContent} = await req.json();
+  const {messages, model, pdfUrl, pdfContent} = await req.json();
 
 
   const systemPrompt = `
@@ -17,10 +17,10 @@ export async function POST(req: Request) {
   Give key insights and deep analysis to enhance user research projects.
   
   #PDF Context: 
-  ${pdfContent}
+  ${pdfContent || ""}
   #End PDF Context#
       `
-  console.log("pdf extracted in /chat route: ", pdfContent.substring(0, 50) + '...')
+  console.log("pdf extracted in /chat route: ", pdfContent.substring(0, 500) + '...')
 
   try {
     const selectedModel = google(model || "gemini-2.0-flash-exp")

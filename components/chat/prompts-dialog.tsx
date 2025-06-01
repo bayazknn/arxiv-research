@@ -10,7 +10,6 @@ import { useSearchParams } from "next/navigation"
 import { useArxivPaperStore } from "@/lib/arxiv-store"
 
 interface Prompt {
-  id: string
   title: string
   prompt: string
   category: string
@@ -29,47 +28,48 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
   const searchParams = useSearchParams()
   const store = useArxivPaperStore();
   const selectArxivPaperByLink = store?.selectArxivPaperByLink || (() => undefined);
-
-
-  
-
-  const fetchPrompts = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const link = searchParams.get("link")
-      if (!link) {
-        throw new Error("Paper link not found")
-      }
-      const paper = selectArxivPaperByLink(link)
-      if (!paper) {
-        throw new Error("Paper not found")
-      }
-      const response = await fetch("/api/prompts?",{
-        method:"POST",
-        body: JSON.stringify({
-          link: paper.link,
-          title: paper.title,
-          summary: paper.summary,
-        })
-      })
-      if (!response.ok) {
-        throw new Error("Failed to fetch prompts")
-      }
-      const data = await response.json()
-      setPrompts(data.prompts)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch prompts")
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [pdfContent, setPdfContent] = useState<string>("")
 
   useEffect(() => {
-    if (open) {
-      fetchPrompts()
+    const pdfText = localStorage.getItem("pdf-content")
+    setPdfContent(pdfText || "")
+    fetchPrompts(pdfContent)
+  }, [pdfContent])
+
+
+
+  // fetchPrompts can be called with or without pdfContent
+  const fetchPrompts = async (pdfContent: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/prompts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pdfContent: pdfContent,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch prompts");
+      }
+      const data = await response.json();
+      console.log("predefined api route response: ", data);
+      if (data && Array.isArray(data.prompts)) {
+        setPrompts(data.prompts);
+      } else {
+        setPrompts([]);
+        setError("No prompts available.");
+      }
+    } catch (err) {
+      setPrompts([]);
+      setError(err instanceof Error ? err.message : "Failed to fetch prompts");
+    } finally {
+      setLoading(false);
     }
-  }, [open])
+  }
 
   const handleSelectPrompt = (prompt: string) => {
     onSelectPrompt(prompt)
@@ -114,7 +114,7 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
           {error && (
             <div className="text-center py-8">
               <p className="text-destructive mb-4">{error}</p>
-              <Button onClick={fetchPrompts} variant="outline">
+              <Button onClick={() => fetchPrompts(pdfContent)} variant="outline">
                 Try Again
               </Button>
             </div>
@@ -153,7 +153,7 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button onClick={() => fetchPrompts()} variant="outline" disabled={loading}>
+          <Button onClick={() => fetchPrompts(pdfContent)} variant="outline" disabled={loading}>
             Refresh Prompts
           </Button>
           <Button onClick={() => onOpenChange(false)} variant="outline">

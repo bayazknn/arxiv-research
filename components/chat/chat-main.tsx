@@ -526,7 +526,8 @@ export function ChatMain() {
 
     try {
       // Send to AI API
-
+      const pdfContent = localStorage.getItem("pdf-content")
+      console.log("pdf extracted in /chat route: ", pdfContent?.substring(0, 500) + '...')
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -545,7 +546,7 @@ export function ChatMain() {
           ],
           model: selectedModel,
           pdfUrl: pdfUrl,
-          pdfContent: localStorage.getItem("pdf-content") || "",
+          pdfContent: pdfContent
         }),
       })
 
@@ -808,7 +809,7 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
         {showPrompts && isNewSession ? (
           <div className="py-6">
             <h2 className="text-lg font-semibold text-center mb-4">How can I help you today?</h2>
-            <PredefinedPrompts onSelectPrompt={handleSelectPrompt} />
+            <PredefinedPrompts onSelectPrompt={handleSelectPrompt}/>
           </div>
         ) : (
           <>

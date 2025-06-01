@@ -190,7 +190,7 @@ export default function PdfViewer({ pdfUrl, width = 800 }: PdfViewerProps) {
         </div>
       </div>
 
-      <div className="p-4 bg-white border-t border-gray-200 mt-4">
+      {/* <div className="p-4 bg-white border-t border-gray-200 mt-4">
         <h3>Extracted Text:</h3>
         {isTextExtracting && (
           <p className="text-gray-600">Extracting text from PDF...</p>
@@ -203,7 +203,7 @@ export default function PdfViewer({ pdfUrl, width = 800 }: PdfViewerProps) {
         {!pdfText && !isTextExtracting && !error && (
             <p className="text-gray-400">No text extracted yet.</p>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }
