@@ -390,7 +390,7 @@ export function ChatMain() {
     // let assistantMessageId = addMessage("assistant", [{ type: "markdown", content: "" }], {"sender": "assistant"})
     try {
       // Send to AI API
-      const eventSource = new EventSource(`http://localhost:8000/stream?arxiv_paper_url=https://arxiv.org/pdf/2505.03512v1.pdf`)
+      const eventSource = new EventSource(`http://localhost:8000/stream?arxiv_paper_url=${encodeURIComponent(pdfUrl.replace("abs", "pdf") || "")}`)
 
 
       eventSource.onmessage = (event) => {
