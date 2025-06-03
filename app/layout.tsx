@@ -5,6 +5,8 @@ import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Geist } from "next/font/google";
+import { BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, Breadcrumb } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 // import { usePathname } from "next/navigation";
 // import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -39,7 +41,11 @@ export default function RootLayout({
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
+        <SidebarTrigger className="-ml-1" />
+
           {children}
+
+
         </SidebarInset>
       </SidebarProvider>
       <Toaster />
@@ -53,12 +59,10 @@ function ClientLayout({ children }: { children: React.ReactNode }) {
     <>
       <SidebarProvider>
         <AppSidebar />
-
-
+        <SidebarTrigger className="-ml-1" />
         <SidebarInset>
           {children}
         </SidebarInset>
-
       </SidebarProvider>
       <Toaster />
     </>

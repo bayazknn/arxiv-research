@@ -20,6 +20,8 @@ const PdfViewer = dynamic(
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 import { ChatSession } from "@/types/chat";
+import { ChatMain } from "@/components/chat/chat-main";
+import { ChatProvider } from "@/contexts/chat-context";
 
 export default function PaperPage() {
   const {arxivPaper} = useChatStore();
@@ -102,7 +104,7 @@ function PaperPageContent() {
         </div>
         <div className="w-5/12 h-full bg-background">
           <div className="h-full overflow-y-auto pr-4">
-            <ChatInterface />
+                <ChatInterface />
           </div>
         </div>
       </div>

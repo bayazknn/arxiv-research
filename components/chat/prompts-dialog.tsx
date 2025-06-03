@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -39,7 +39,7 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
 
 
   // fetchPrompts can be called with or without pdfContent
-  const fetchPrompts = async (pdfContent: string) => {
+  const fetchPrompts = useCallback(async (pdfContent: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -69,12 +69,12 @@ export function PromptsDialog({ open, onOpenChange, onSelectPrompt }: PromptsDia
     } finally {
       setLoading(false);
     }
-  }
+  }, [setLoading, setError, setPrompts])
 
-  const handleSelectPrompt = (prompt: string) => {
+  const handleSelectPrompt = useCallback((prompt: string) => {
     onSelectPrompt(prompt)
     onOpenChange(false)
-  }
+  }, [onSelectPrompt, onOpenChange])
 
   const getCategoryColor = () => {
     const colors = [

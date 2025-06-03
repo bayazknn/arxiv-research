@@ -529,7 +529,9 @@ export function ChatMain() {
 
     try {
       // Send to AI API
-      const pdfContent = localStorage.getItem("pdf-content")
+      await new Promise(resolve => setTimeout(resolve, 0)); // Yield to event loop
+
+      const pdfContent = localStorage.getItem("pdf-content");
       console.log("pdf extracted in /chat route: ", pdfContent?.substring(0, 500) + '...')
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -634,6 +636,8 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
 
     } finally {
       setIsAiLoading(false)
+      await new Promise(resolve => setTimeout(resolve, 0)); // Yield to event loop
+
     }
   }, [addMessage, updateMessageContent, setIsAiLoading])
 
@@ -676,6 +680,7 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
 
       {/* Prompts Dialog */}
       <PromptsDialog open={showPromptsDialog} onOpenChange={setShowPromptsDialog} onSelectPrompt={handleSelectPrompt} />
+
 
       {/* Header with session selector and model selector */}
       <div className="border-b p-3 flex items-center justify-between">
@@ -792,7 +797,7 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
             </SelectContent>
           </Select>
 
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-3 w-3" />
@@ -803,7 +808,7 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
                 <span className="text-xs">Show Prompts</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
         </div>
       </div>
 
@@ -831,7 +836,7 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
+      Input area
       <ChatInputArea
         onSendMessage={handleSendMessage}
         placeholder="Message Arxiv Research..."
@@ -840,7 +845,7 @@ ${errorData?.requiresApiKey ? 'Please add your Google Gemini API key to the .env
         onClearQuote={handleClearQuote}
       />
 
-      {/* All dialog components remain the same but with updated colors */}
+      {/* All dialog components remain the same but with updated colors
       {isRenameOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={handleCloseRename}>
           <div className="bg-background rounded-lg shadow-lg w-full max-w-md p-4" onClick={(e) => e.stopPropagation()}>
